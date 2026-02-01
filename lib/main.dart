@@ -1,0 +1,25 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart'; // 1. Importar Core
+import 'screens/acceso_screen.dart';
+import 'firebase_options.dart'; // 2. Importar el archivo que se creó solo
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  // This widget is the root of your application.
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Flutter Demo',
+      theme: ThemeData(colorScheme: .fromSeed(seedColor: Colors.deepPurple)),
+      home: const AccesoScreen(),
+    );
+  }
+}
