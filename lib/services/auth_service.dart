@@ -46,6 +46,24 @@ class AuthService {
     }
   }
 
+  // Función para Iniciar Sesión (Login)
+  Future<String?> iniciarSesion({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      return null; // Todo salió bien
+    } on FirebaseAuthException catch (e) {
+      // Traducimos algunos errores comunes de Firebase al español
+      if (e.code == 'user-not-found') return 'Usuario no encontrado.';
+      if (e.code == 'wrong-password') return 'Contraseña incorrecta.';
+      return e.message;
+    } catch (e) {
+      return "Error: $e";
+    }
+  }
+
   // Función para Salir
   Future<void> cerrarSesion() async {
     await _auth.signOut();

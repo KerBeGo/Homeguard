@@ -9,41 +9,55 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  // Controladores para capturar texto
   final _emailController = TextEditingController();
   final _passController = TextEditingController();
   final _nameController = TextEditingController();
 
-  // Variable para el rol seleccionado
   String _rolSeleccionado = 'PACIENTE';
   final AuthService _authService = AuthService();
 
-  void _registrarse() async {
-    // Mostrar un circulito de carga
+  // ESTA ES LA CLAVE: Una variable para saber en qué modo estamos
+  bool _esRegistro = false; // Empieza en false para mostrar LOGIN primero
+
+  void _submitForm() async {
+    // Validaciones básicas
+    if (_emailController.text.isEmpty || _passController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Llena los campos obligatorios")),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       builder: (c) => const Center(child: CircularProgressIndicator()),
     );
 
-    // Llamar al servicio
-    String? error = await _authService.registrarUsuario(
-      email: _emailController.text.trim(),
-      password: _passController.text.trim(),
-      nombre: _nameController.text.trim(),
-      rol: _rolSeleccionado,
-    );
+    String? error;
 
-    // Cerrar el circulito
-    if (mounted) Navigator.pop(context);
+    // Decidimos qué función llamar según el modo
+    if (_esRegistro) {
+      // MODO REGISTRO
+      error = await _authService.registrarUsuario(
+        email: _emailController.text.trim(),
+        password: _passController.text.trim(),
+        nombre: _nameController.text.trim(),
+        rol: _rolSeleccionado,
+      );
+    } else {
+      // MODO LOGIN
+      error = await _authService.iniciarSesion(
+        email: _emailController.text.trim(),
+        password: _passController.text.trim(),
+      );
+    }
+
+    if (mounted) Navigator.pop(context); // Cerrar loading
 
     if (error == null) {
-      // ÉXITO: Navegar al Home (Por ahora solo imprimimos)
-      print("¡Usuario registrado como $_rolSeleccionado!");
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text("Registro Exitoso")));
+      // Si todo sale bien, no hacemos nada.
+      // El "StreamBuilder" del AccesoScreen detectará el cambio y navegará solo.
     } else {
-      // ERROR: Mostrar mensaje
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(error), backgroundColor: Colors.red),
       );
@@ -53,55 +67,95 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Crear Cuenta HomeGuard")),
+      appBar: AppBar(
+        title: Text(_esRegistro ? "Crear Cuenta" : "Iniciar Sesión"),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(labelText: "Nombre Completo"),
-            ),
-            TextField(
-              controller: _emailController,
-              decoration: const InputDecoration(
-                labelText: "Correo Electrónico",
-              ),
-            ),
-            TextField(
-              controller: _passController,
-              decoration: const InputDecoration(labelText: "Contraseña"),
-              obscureText: true,
-            ),
-            const SizedBox(height: 20),
-
-            // EL SELECTOR DE ROL IMPORTANTE
-            DropdownButton<String>(
-              value: _rolSeleccionado,
-              isExpanded: true,
-              items: const [
-                DropdownMenuItem(
-                  value: 'PACIENTE',
-                  child: Text("Soy Paciente (Quiero que me cuiden)"),
+        child: SingleChildScrollView(
+          // Para que no tape el teclado
+          child: Column(
+            children: [
+              // 1. CAMPOS QUE SOLO SE VEN EN REGISTRO (Nombre y Rol)
+              if (_esRegistro) ...[
+                TextField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    labelText: "Nombre Completo",
+                    prefixIcon: Icon(Icons.person),
+                  ),
                 ),
-                DropdownMenuItem(
-                  value: 'CUIDADOR',
-                  child: Text("Soy Cuidador (Quiero monitorear)"),
+                const SizedBox(height: 10),
+                DropdownButtonFormField<String>(
+                  value: _rolSeleccionado,
+                  decoration: const InputDecoration(
+                    labelText: "Quiero usar la app como:",
+                    prefixIcon: Icon(Icons.group),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                      value: 'PACIENTE',
+                      child: Text("Paciente"),
+                    ),
+                    DropdownMenuItem(
+                      value: 'CUIDADOR',
+                      child: Text("Cuidador"),
+                    ),
+                  ],
+                  onChanged: (valor) =>
+                      setState(() => _rolSeleccionado = valor!),
                 ),
+                const SizedBox(height: 10),
               ],
-              onChanged: (valor) {
-                setState(() {
-                  _rolSeleccionado = valor!;
-                });
-              },
-            ),
 
-            const SizedBox(height: 40),
-            ElevatedButton(
-              onPressed: _registrarse,
-              child: const Text("Registrarme"),
-            ),
-          ],
+              // 2. CAMPOS COMUNES (Email y Password)
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(
+                  labelText: "Correo Electrónico",
+                  prefixIcon: Icon(Icons.email),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _passController,
+                obscureText: true,
+                decoration: const InputDecoration(
+                  labelText: "Contraseña",
+                  prefixIcon: Icon(Icons.lock),
+                ),
+              ),
+
+              const SizedBox(height: 30),
+
+              // 3. BOTÓN PRINCIPAL
+              ElevatedButton(
+                onPressed: _submitForm,
+                style: ElevatedButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: Text(_esRegistro ? "REGISTRARME" : "ENTRAR"),
+              ),
+
+              const SizedBox(height: 20),
+
+              // 4. EL TEXTO PARA CAMBIAR DE MODO
+              TextButton(
+                onPressed: () {
+                  setState(() {
+                    _esRegistro =
+                        !_esRegistro; // Cambia de true a false y viceversa
+                  });
+                },
+                child: Text(
+                  _esRegistro
+                      ? "¿Ya tienes cuenta? Inicia Sesión"
+                      : "¿No tienes cuenta? Regístrate aquí",
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
