@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'register_screen.dart'; // Tu pantalla de registro/login
-import 'home_paciente.dart';
-import 'home_cuidador.dart';
+import 'paciente/paciente_main_screen.dart';
+import 'cuidador/cuidador_main_screen.dart';
 
 class AccesoScreen extends StatelessWidget {
   const AccesoScreen({super.key});
@@ -43,9 +43,9 @@ class AccesoScreen extends StatelessWidget {
 
               // 3. EL GRAN DECISOR
               if (rol == 'CUIDADOR') {
-                return const HomeCuidador();
+                return const CuidadorMainScreen();
               } else {
-                return const HomePaciente();
+                return const PacienteMainScreen();
               }
             }
 

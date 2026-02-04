@@ -1,0 +1,139 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class AlertasCuidador extends StatelessWidget {
+  const AlertasCuidador({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser!;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Alertas"),
+        backgroundColor: Colors.teal,
+        automaticallyImplyLeading: false,
+      ),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('alertas')
+            .where('cuidadorId', isEqualTo: user.uid)
+            .orderBy('timestamp', descending: true)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.notifications_none,
+                    size: 80,
+                    color: Colors.grey,
+                  ),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "No hay alertas",
+                    style: TextStyle(fontSize: 20, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 10),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 40),
+                    child: Text(
+                      "Las alertas de tus pacientes aparecerán aquí",
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Colors.grey),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: snapshot.data!.docs.length,
+            itemBuilder: (context, index) {
+              var alertaData =
+                  snapshot.data!.docs[index].data() as Map<String, dynamic>;
+              var timestamp = alertaData['timestamp'] as Timestamp?;
+              var fecha = timestamp?.toDate();
+
+              IconData icon;
+              Color color;
+
+              switch (alertaData['tipo']) {
+                case 'medicamento':
+                  icon = Icons.medication;
+                  color = Colors.orange;
+                  break;
+                case 'emergencia':
+                  icon = Icons.warning;
+                  color = Colors.red;
+                  break;
+                case 'caida':
+                  icon = Icons.personal_injury;
+                  color = Colors.red;
+                  break;
+                default:
+                  icon = Icons.notifications;
+                  color = Colors.blue;
+              }
+
+              return Card(
+                margin: const EdgeInsets.only(bottom: 12),
+                elevation: 2,
+                child: ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: color.withOpacity(0.2),
+                    child: Icon(icon, color: color),
+                  ),
+                  title: Text(
+                    alertaData['mensaje'] ?? 'Nueva alerta',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(alertaData['pacienteNombre'] ?? 'Paciente'),
+                      if (fecha != null)
+                        Text(
+                          '${fecha.day}/${fecha.month}/${fecha.year} ${fecha.hour}:${fecha.minute.toString().padLeft(2, '0')}',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                    ],
+                  ),
+                  trailing: alertaData['leida'] == true
+                      ? null
+                      : Container(
+                          width: 12,
+                          height: 12,
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                  onTap: () {
+                    // Marcar como leída
+                    FirebaseFirestore.instance
+                        .collection('alertas')
+                        .doc(snapshot.data!.docs[index].id)
+                        .update({'leida': true});
+                  },
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+}

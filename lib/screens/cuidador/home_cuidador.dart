@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
 
 class HomeCuidador extends StatelessWidget {
   const HomeCuidador({super.key});
@@ -10,12 +9,7 @@ class HomeCuidador extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Panel de Cuidador"),
         backgroundColor: Colors.teal,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            onPressed: () => AuthService().cerrarSesion(),
-          ),
-        ],
+        automaticallyImplyLeading: false,
       ),
       body: const Center(
         child: Text("Aquí aparecerá la lista de tus pacientes"),

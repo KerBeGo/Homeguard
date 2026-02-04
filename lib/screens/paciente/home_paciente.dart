@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../services/auth_service.dart';
 
 class HomePaciente extends StatelessWidget {
   const HomePaciente({super.key});
@@ -13,12 +12,7 @@ class HomePaciente extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text("Modo Paciente"),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            onPressed: () => AuthService().cerrarSesion(), // Botón de Salir
-          ),
-        ],
+        automaticallyImplyLeading: false,
       ),
       body: Center(
         child: Column(
