@@ -87,7 +87,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
-                  value: _rolSeleccionado,
+                  initialValue: _rolSeleccionado,
                   decoration: const InputDecoration(
                     labelText: "Quiero usar la app como:",
                     prefixIcon: Icon(Icons.group),

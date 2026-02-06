@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'vincular_paciente.dart';
+import 'ubicacion_mapa.dart';
 
 class PacientesDeCuidador extends StatelessWidget {
   const PacientesDeCuidador({super.key});
@@ -90,6 +92,12 @@ class PacientesDeCuidador extends StatelessWidget {
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () {
                     // Aquí podrías navegar a los detalles del paciente
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const UbicacionMapa(),
+                      ),
+                    );
                   },
                 ),
               );
@@ -99,85 +107,16 @@ class PacientesDeCuidador extends StatelessWidget {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          _mostrarDialogoAgregarPaciente(context, user.uid);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const VincularPacienteScreen(),
+            ),
+          );
         },
         backgroundColor: Colors.teal,
         child: const Icon(Icons.add),
       ),
-    );
-  }
-
-  void _mostrarDialogoAgregarPaciente(BuildContext context, String cuidadorId) {
-    final TextEditingController codigoController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Agregar Paciente'),
-          content: TextField(
-            controller: codigoController,
-            textCapitalization: TextCapitalization.characters,
-            decoration: const InputDecoration(
-              labelText: 'Código de vinculación',
-              hintText: 'Ingresa el código del paciente',
-              border: OutlineInputBorder(),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                if (codigoController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Ingresa un código válido')),
-                  );
-                  return;
-                }
-
-                // Buscar paciente por código
-                var query = await FirebaseFirestore.instance
-                    .collection('users')
-                    .where(
-                      'codigoVinculacion',
-                      isEqualTo: codigoController.text.trim(),
-                    )
-                    .where('tipo', isEqualTo: 'paciente')
-                    .get();
-
-                if (query.docs.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'No se encontró un paciente con ese código',
-                      ),
-                    ),
-                  );
-                  return;
-                }
-
-                // Vincular paciente
-                await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(query.docs.first.id)
-                    .update({'cuidadorId': cuidadorId});
-
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Paciente vinculado exitosamente'),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-              child: const Text('Agregar'),
-            ),
-          ],
-        );
-      },
     );
   }
 }

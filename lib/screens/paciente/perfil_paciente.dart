@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
@@ -65,10 +66,63 @@ class PerfilPaciente extends StatelessWidget {
                   ),
                 ),
                 Card(
-                  child: ListTile(
-                    leading: const Icon(Icons.code),
-                    title: const Text('Código de vinculación'),
-                    subtitle: Text(data['codigoVinculacion'] ?? 'Sin código'),
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(15),
+                    side: const BorderSide(
+                      color: Colors.blueAccent,
+                      width: 1.5,
+                    ),
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Column(
+                      children: [
+                        const Text(
+                          "Tu código de vinculación",
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        SelectableText(
+                          data['codigoVinculacion'] ?? '---',
+                          style: const TextStyle(
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        const Text(
+                          "Comparte este código con tu cuidador para que pueda conectarse contigo.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: Colors.black54),
+                        ),
+                        const SizedBox(height: 15),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            if (data['codigoVinculacion'] != null) {
+                              Clipboard.setData(
+                                ClipboardData(text: data['codigoVinculacion']),
+                              );
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                    "Código copiado al portapapeles",
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.copy),
+                          label: const Text("Copiar Código"),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
                 const SizedBox(height: 30),
