@@ -49,8 +49,40 @@ class AccesoScreen extends StatelessWidget {
               }
             }
 
-            return const Scaffold(
-              body: Center(child: Text("Error cargando usuario")),
+            if (snapshotFirestore.hasError) {
+              return Scaffold(
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text("Error: ${snapshotFirestore.error}"),
+                      const SizedBox(height: 20),
+                      ElevatedButton(
+                        onPressed: () => FirebaseAuth.instance.signOut(),
+                        child: const Text("Cerrar Sesión"),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+
+            return Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text(
+                      "Error: Usuario no encontrado en la base de datos.",
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: () => FirebaseAuth.instance.signOut(),
+                      child: const Text("Cerrar Sesión"),
+                    ),
+                  ],
+                ),
+              ),
             );
           },
         );

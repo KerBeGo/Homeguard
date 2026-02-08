@@ -95,7 +95,7 @@ class PacientesDeCuidador extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const UbicacionMapa(),
+                        builder: (context) => const MapaScreen(),
                       ),
                     );
                   },

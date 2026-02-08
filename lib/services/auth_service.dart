@@ -42,7 +42,14 @@ class AuthService {
     } on FirebaseAuthException catch (e) {
       return e.message; // Devuelve el error (ej: "Email ya en uso")
     } catch (e) {
-      return "Ocurrió un error desconocido: $e";
+      // Si falla ALGO (ej: Firestore), borramos el usuario creado
+      // para no dejar "usuarios zombis" sin datos en la BD.
+      try {
+        await _auth.currentUser?.delete();
+      } catch (_) {
+        // Ignoramos error al borrar
+      }
+      return "Ocurrió un error al guardar datos: $e";
     }
   }
 
