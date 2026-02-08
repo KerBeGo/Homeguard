@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'vincular_paciente.dart';
-import 'ubicacion_mapa.dart';
+import 'patient_detail_screen.dart';
 
 class PacientesDeCuidador extends StatelessWidget {
   const PacientesDeCuidador({super.key});
@@ -95,7 +95,11 @@ class PacientesDeCuidador extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const MapaScreen(),
+                        builder: (context) => PatientDetailScreen(
+                          patientId:
+                              snapshot.data!.docs[index].id, // Use document ID!
+                          patientName: pacienteData['nombre'] ?? 'Paciente',
+                        ),
                       ),
                     );
                   },

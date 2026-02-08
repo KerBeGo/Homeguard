@@ -54,26 +54,26 @@ C. Lógica de Acceso y Roles
 
 ✅ Interfaz Dinámica: Pantalla de Login/Registro unificada que cambia de forma con un botón.
 
+D. La Conexión
+
+✅Antes de monitorear, se necesita unir dos celulares.
+
+✅Generar Código: (Ya está en mi código, falta mostrarlo bonito).
+
+✅Vincular: Crear la pantalla en el Cuidador para escribir el código del Paciente.
+
+✅Backend: Hacer la función que crea el documento en la colección connections.
+
 3. Lo que te FALTA (🚧 Hoja de Ruta)
    Aquí está mi trabajo para las próximas semanas, ordenado por prioridad lógica:
 
-# Fase 1: La Conexión (Prioridad Alta)
-
-Antes de monitorear, necesitas unir los dos celulares.
-
-Generar Código: (Ya está en mi código, falta mostrarlo bonito).
-
-Vincular: Crear la pantalla en el Cuidador para escribir el código del Paciente.
-
-Backend: Hacer la función que crea el documento en la colección connections.
-
-# Fase 2: El Tablero de Control (Prioridad Media)
+# Fase 1: El Tablero de Control (Prioridad Media)
 
 Lista de Pacientes: Que el cuidador vea a quién cuida (leer de Firestore).
 
 Detalle del Paciente: Crear la pantalla con pestañas (Mapa | Alertas | Medicinas).
 
-# Fase 3: Funcionalidades Core (La "Ingeniería")
+# Fase 2: Funcionalidades Core (La "Ingeniería")
 
 Geolocalización:
 
@@ -89,11 +89,11 @@ Leer nivel de batería y enviarlo a Firestore (package:battery_plus).
 
 Notificaciones (FCM):
 
-Obtener y guardar el fcmToken al iniciar sesión (como hablamos recién).
+Obtener y guardar el fcmToken al iniciar sesión.
 
 Configurar Cloud Functions (o lógica local) para enviar la alerta push.
 
-# Fase 4: Inteligencia Artificial (El "Broche de Oro")
+# Fase 3: Inteligencia Artificial (El "Broche de Oro")
 
 Sensores: Leer el acelerómetro en tiempo real (sensors_plus).
 

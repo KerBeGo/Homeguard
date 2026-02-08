@@ -1,20 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MapaScreen extends StatefulWidget {
-  const MapaScreen({super.key});
+  final String patientId;
+
+  const MapaScreen({super.key, required this.patientId});
 
   @override
   State<MapaScreen> createState() => _MapaScreenState();
 }
 
 class _MapaScreenState extends State<MapaScreen> {
-  // Esta variable controlará el mapa
   late GoogleMapController mapController;
-
-  // Coordenadas iniciales (ejemplo: Plaza Venezuela, Caracas)
-  // Puedes cambiarlas por las que quieras que salgan al abrir la app
-  final LatLng _center = const LatLng(10.496, -66.898);
+  final LatLng _defaultCenter = const LatLng(10.496, -66.898);
+  Set<Marker> _markers = {};
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
@@ -22,26 +22,43 @@ class _MapaScreenState extends State<MapaScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('HomeGuard Monitor'),
-        backgroundColor: Colors.green[700],
-      ),
-      body: GoogleMap(
-        onMapCreated: _onMapCreated,
-        initialCameraPosition: CameraPosition(
-          target: _center,
-          zoom: 15.0, // Mientras más alto el número, más cerca el zoom
-        ),
-        // Aquí puedes agregar marcadores luego
-        markers: {
-          const Marker(
-            markerId: MarkerId('casa_monitoreada'),
-            position: LatLng(10.496, -66.898),
-            infoWindow: InfoWindow(title: 'Ubicación HomeGuard'),
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.patientId)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData && snapshot.data!.exists) {
+          var data = snapshot.data!.data() as Map<String, dynamic>;
+          if (data.containsKey('location')) {
+            GeoPoint? location = data['location'] as GeoPoint?;
+            if (location != null) {
+              _markers = {
+                Marker(
+                  markerId: MarkerId(widget.patientId),
+                  position: LatLng(location.latitude, location.longitude),
+                  infoWindow: const InfoWindow(title: 'Paciente'),
+                ),
+              };
+
+              // Move camera if mapController is ready?
+              // Doing this in build is not ideal, but for now we just show the map.
+              // The user can move it manually.
+            }
+          }
+        }
+
+        return GoogleMap(
+          onMapCreated: _onMapCreated,
+          initialCameraPosition: CameraPosition(
+            target: _markers.isNotEmpty
+                ? _markers.first.position
+                : _defaultCenter,
+            zoom: 15.0,
           ),
-        },
-      ),
+          markers: _markers,
+        );
+      },
     );
   }
 }
