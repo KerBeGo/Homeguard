@@ -68,6 +68,7 @@ class PatientDetailScreen extends StatelessWidget {
           ),
         ),
         body: TabBarView(
+          physics: const NeverScrollableScrollPhysics(), // Deshabilitar swipe
           children: [
             // Tab 1: Mapa (le pasamos el ID para que escuche la ubicación)
             MapaScreen(patientId: patientId),
