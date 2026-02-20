@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:battery_plus/battery_plus.dart';
+import '../../services/alert_service.dart';
 
 class HomePaciente extends StatefulWidget {
   const HomePaciente({super.key});
@@ -173,9 +174,105 @@ class _HomePacienteState extends State<HomePaciente> {
                 "Compartiendo ubicación y batería...",
                 style: TextStyle(color: Colors.green),
               ),
+            const SizedBox(height: 40),
+            const Divider(),
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 16),
+              child: Text(
+                "Simular Alertas",
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              alignment: WrapAlignment.center,
+              children: [
+                _buildAlertButton(
+                  context,
+                  label: "SOS",
+                  icon: Icons.sos,
+                  color: Colors.red,
+                  onPressed: () =>
+                      _sendAlert("sos", "¡Solicitud de ayuda SOS!"),
+                ),
+                _buildAlertButton(
+                  context,
+                  label: "Caída",
+                  icon: Icons.personal_injury,
+                  color: Colors.orange,
+                  onPressed: () =>
+                      _sendAlert("caida", "Se ha detectado una posible caída"),
+                ),
+                _buildAlertButton(
+                  context,
+                  label: "Medicina",
+                  icon: Icons.medication,
+                  color: Colors.purple,
+                  onPressed: () => _sendAlert(
+                    "medicamento",
+                    "Recordatorio de medicamento pendiente",
+                  ),
+                ),
+                _buildAlertButton(
+                  context,
+                  label: "Zona Segura",
+                  icon: Icons.map,
+                  color: Colors.blue,
+                  onPressed: () => _sendAlert(
+                    "zona_segura",
+                    "El paciente ha salido de la zona segura",
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildAlertButton(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return ElevatedButton.icon(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      ),
+      onPressed: onPressed,
+      icon: Icon(icon),
+      label: Text(label),
+    );
+  }
+
+  final AlertService _alertService = AlertService();
+
+  Future<void> _sendAlert(String tipo, String mensaje) async {
+    try {
+      await _alertService.enviarAlerta(tipo: tipo, mensaje: mensaje);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Alerta de $tipo enviada con éxito"),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Error al enviar alerta: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }

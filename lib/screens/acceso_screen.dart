@@ -22,11 +22,11 @@ class AccesoScreen extends StatelessWidget {
         // 2. Si SI está logueado, necesitamos saber su ROL en Firestore
         User usuarioLogueado = snapshot.data!;
 
-        return FutureBuilder<DocumentSnapshot>(
-          future: FirebaseFirestore.instance
+        return StreamBuilder<DocumentSnapshot>(
+          stream: FirebaseFirestore.instance
               .collection('users')
               .doc(usuarioLogueado.uid)
-              .get(),
+              .snapshots(),
           builder: (context, snapshotFirestore) {
             // Mientras carga el rol, mostramos un circulito
             if (snapshotFirestore.connectionState == ConnectionState.waiting) {

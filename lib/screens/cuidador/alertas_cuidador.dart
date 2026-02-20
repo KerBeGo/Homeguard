@@ -22,6 +22,50 @@ class AlertasCuidador extends StatelessWidget {
             .orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 60,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      "Error al cargar alertas",
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      snapshot.error.toString(),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                    if (snapshot.error.toString().contains('index'))
+                      const Padding(
+                        padding: EdgeInsets.only(top: 16),
+                        child: Text(
+                          "Nota: Es probable que falte un índice en Firestore. Revisa la consola de depuración para el link de creación.",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Colors.teal,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            );
+          }
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -70,19 +114,27 @@ class AlertasCuidador extends StatelessWidget {
               switch (alertaData['tipo']) {
                 case 'medicamento':
                   icon = Icons.medication;
+                  color = Colors.purple;
+                  break;
+                case 'sos':
+                  icon = Icons.sos;
+                  color = Colors.red;
+                  break;
+                case 'caida':
+                  icon = Icons.personal_injury;
                   color = Colors.orange;
+                  break;
+                case 'zona_segura':
+                  icon = Icons.map;
+                  color = Colors.blue;
                   break;
                 case 'emergencia':
                   icon = Icons.warning;
                   color = Colors.red;
                   break;
-                case 'caida':
-                  icon = Icons.personal_injury;
-                  color = Colors.red;
-                  break;
                 default:
                   icon = Icons.notifications;
-                  color = Colors.blue;
+                  color = Colors.grey;
               }
 
               return Card(
