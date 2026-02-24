@@ -5,6 +5,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:battery_plus/battery_plus.dart';
 import '../../services/alert_service.dart';
+import '../../services/geofence_service.dart';
+import 'dart:developer';
 
 class HomePaciente extends StatefulWidget {
   const HomePaciente({super.key});
@@ -96,11 +98,39 @@ class _HomePacienteState extends State<HomePaciente> {
     );
   }
 
+  final AlertService _alertService = AlertService();
+  final GeofenceService _geofenceService = GeofenceService();
+  DateTime? _lastGeofenceAlertTime;
+
   Future<void> _updateLocation(Position position) async {
+    // 1. Actualizar ubicación en Firestore
     await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
       'location': GeoPoint(position.latitude, position.longitude),
       'lastLocationUpdate': FieldValue.serverTimestamp(),
     });
+
+    // 2. Verificar Geocercas automáticamente
+    try {
+      bool isOutside = await _geofenceService.isPointOutsideAllGeofences(
+        user.uid,
+        GeoPoint(position.latitude, position.longitude),
+      );
+
+      if (isOutside) {
+        // Cooldown para no saturar de alertas (ej: 30 minutos)
+        if (_lastGeofenceAlertTime == null ||
+            DateTime.now().difference(_lastGeofenceAlertTime!) >
+                const Duration(minutes: 30)) {
+          _lastGeofenceAlertTime = DateTime.now();
+          await _sendAlert(
+            "zona_segura",
+            "Alerta Automática: El paciente ha salido de la zona segura.",
+          );
+        }
+      }
+    } catch (e) {
+      log("Error al verificar geocercas: $e");
+    }
   }
 
   Future<void> _updateBattery() async {
@@ -250,8 +280,6 @@ class _HomePacienteState extends State<HomePaciente> {
       label: Text(label),
     );
   }
-
-  final AlertService _alertService = AlertService();
 
   Future<void> _sendAlert(String tipo, String mensaje) async {
     try {

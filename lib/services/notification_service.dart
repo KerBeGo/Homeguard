@@ -3,12 +3,20 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:developer';
 
+// Esta función debe ser de nivel superior (fuera de la clase) para manejar mensajes en segundo plano
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  log("Manejando un mensaje en segundo plano: ${message.messageId}");
+}
+
 class NotificationService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
   Future<void> initialize() async {
-    // Request permission for iOS/Web (Android doesn't need explicit permission for basic notifs,
-    // but Android 13+ does need POST_NOTIFICATIONS)
+    // 1. Configurar el manejador de segundo plano
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+    // 2. Pedir permisos
     NotificationSettings settings = await _fcm.requestPermission(
       alert: true,
       badge: true,
@@ -16,44 +24,60 @@ class NotificationService {
     );
 
     if (settings.authorizationStatus == AuthorizationStatus.authorized) {
-      log('User granted permission');
-    } else if (settings.authorizationStatus ==
-        AuthorizationStatus.provisional) {
-      log('User granted provisional permission');
+      log('Permiso concedido');
     } else {
-      log('User declined or has not accepted permission');
+      log('Permiso denegado');
     }
 
-    // Get the token
+    // 3. Obtener el token FCM
     String? token = await _fcm.getToken();
     if (token != null) {
       log('FCM Token: $token');
       await _saveTokenToFirestore(token);
     }
 
-    // Listen for token refreshes
+    // 4. Escuchar refrescos de token
     _fcm.onTokenRefresh.listen(_saveTokenToFirestore);
 
-    // Foreground messages
+    // 5. Manejar mensajes cuando la app está en PRIMER PLANO
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      log('Got a message whilst in the foreground!');
-      log('Message data: ${message.data}');
+      log('¡Mensaje recibido en primer plano!');
+      log('Datos del mensaje: ${message.data}');
 
       if (message.notification != null) {
-        log('Message also contained a notification: ${message.notification}');
+        log(
+          'El mensaje también contenía una notificación: ${message.notification?.title}',
+        );
       }
     });
+
+    // 6. Manejar cuando el usuario TOCA la notificación y la app estaba en segundo plano
+    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+      log('El usuario tocó la notificación!');
+      // Aquí podrías navegar a la pantalla de alertas si fuera necesario
+    });
+
+    // 7. Manejar si la app se abrió desde una notificación estando CERRADA
+    RemoteMessage? initialMessage = await _fcm.getInitialMessage();
+    if (initialMessage != null) {
+      log('La app se abrió desde una notificación (estando cerrada)');
+    }
   }
 
   Future<void> _saveTokenToFirestore(String token) async {
     User? user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).update(
-        {'fcmToken': token},
-      );
-      log('FCM Token saved to Firestore');
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .update({'fcmToken': token});
+        log('Token FCM guardado en Firestore');
+      } catch (e) {
+        log('Error al guardar token: $e');
+      }
     } else {
-      log('No user logged in, token not saved');
+      log('No hay usuario logueado, token no guardado');
     }
   }
 }
