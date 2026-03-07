@@ -76,13 +76,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
           // Para que no tape el teclado
           child: Column(
             children: [
+              CircleAvatar(
+                radius: 80,
+                backgroundImage: AssetImage('assets/HOMEGUARD_2.png'),
+                backgroundColor: Colors.blueAccent,
+              ),
               // 1. CAMPOS QUE SOLO SE VEN EN REGISTRO (Nombre y Rol)
               if (_esRegistro) ...[
-                CircleAvatar(
-                  radius: 80,
-                  backgroundImage: AssetImage('assets/HOMEGUARD_2.png'),
-                  backgroundColor: Colors.blueAccent,
-                ),
                 TextField(
                   controller: _nameController,
                   decoration: const InputDecoration(
@@ -116,39 +116,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
               const SizedBox(height: 15),
 
-              Row(
-                children: [
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.diversity_1),
-                      label: const Text('PACIENTE'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+              if (_esRegistro) ...[
+                const Text("Selecciona tu rol:"),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _rolSeleccionado = 'PACIENTE';
+                          });
+                        },
+                        icon: const Icon(Icons.diversity_1),
+                        label: const Text('Paciente'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _rolSeleccionado == 'PACIENTE'
+                              ? Colors.green
+                              : Colors.grey.shade400,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: FilledButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.medical_services),
-                      label: const Text('Cuidador'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.indigo,
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: FilledButton.icon(
+                        onPressed: () {
+                          setState(() {
+                            _rolSeleccionado = 'CUIDADOR';
+                          });
+                        },
+                        icon: const Icon(Icons.medical_services),
+                        label: const Text('Cuidador'),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: _rolSeleccionado == 'CUIDADOR'
+                              ? Colors.indigo
+                              : Colors.grey.shade400,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+              ],
 
               const SizedBox(height: 30),
 

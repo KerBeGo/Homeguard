@@ -41,6 +41,9 @@ dependencies:
   geolocator: ^13.0.2
   battery_plus: ^6.2.1
   firebase_messaging: 16.1.1
+  flutter_local_notifications: ^21.0.0
+  timezone: ^0.11.0
+  provider: ^6.1.5+1
 
 dev_dependencies:
   flutter_test:

@@ -22,7 +22,7 @@ class AlertService {
     final cuidadorId = data['cuidadorId'];
 
     if (cuidadorId == null) {
-      print("No hay cuidador vinculado para enviar la alerta");
+      // print("No hay cuidador vinculado para enviar la alerta");
       // En una aplicación real, podrías querer manejar esto de forma diferente
       // (ej: enviar a una lista general o notificar al paciente)
       return;
