@@ -191,23 +191,47 @@ class _MedicationWizardState extends State<MedicationWizard> {
             const SizedBox(height: 24),
             const Text('Categoría:', style: TextStyle(fontSize: 16)),
             const SizedBox(height: 8),
-            Wrap(
-              spacing: 8.0,
+            Column(
               children: ['Pastilla', 'Jarabe', 'Inyección', 'Inhalador'].map((
                 cat,
               ) {
-                return ChoiceChip(
-                  label: Text(cat),
-                  selected: med.categoria == cat,
-                  onSelected: (selected) {
-                    if (selected) {
-                      provider.updateIdentidad(
-                        med.nombre,
-                        med.descripcion,
+                final isSelected = med.categoria == cat;
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isSelected
+                            ? Theme.of(context).primaryColor
+                            : Colors.grey[200],
+                        foregroundColor: isSelected
+                            ? Colors.white
+                            : Colors.black87,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        elevation: isSelected ? 2 : 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () {
+                        provider.updateIdentidad(
+                          med.nombre,
+                          med.descripcion,
+                          cat,
+                        );
+                      },
+                      child: Text(
                         cat,
-                      );
-                    }
-                  },
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
                 );
               }).toList(),
             ),

@@ -1,6 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:flutter_timezone/flutter_timezone.dart';
 import '../models/medication_model.dart';
 import 'package:flutter/material.dart';
 
@@ -15,6 +16,12 @@ class LocalNotificationService {
 
   Future<void> init() async {
     tz.initializeTimeZones();
+    try {
+      final dynamic timeZoneName = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timeZoneName.toString()));
+    } catch (e) {
+      debugPrint('Could not get local timezone: $e');
+    }
 
     // Reemplaza '@mipmap/ic_launcher' por el ícono de la app si tienes otro
     const AndroidInitializationSettings initializationSettingsAndroid =
@@ -44,6 +51,17 @@ class LocalNotificationService {
         }
       },
     );
+
+    // Request permissions for Android 13+
+    final androidImplementation = flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+
+    if (androidImplementation != null) {
+      await androidImplementation.requestNotificationsPermission();
+      await androidImplementation.requestExactAlarmsPermission();
+    }
   }
 
   Future<void> scheduleReminders(List<Medication> medications) async {
@@ -57,8 +75,10 @@ class LocalNotificationService {
         final int hour = int.parse(parts[0]);
         final int minute = int.parse(parts[1]);
 
+        final int uniqueId = (med.id?.hashCode ?? 0) + hour * 60 + minute;
+
         await _scheduleDailyNotification(
-          id: med.notificationId + hour + minute, // unique enough ID
+          id: uniqueId,
           title: 'Hora de tu medicamento: ${med.nombre}',
           body: '${med.categoria} - ${med.descripcion}',
           hour: hour,
@@ -77,24 +97,52 @@ class LocalNotificationService {
     required int minute,
     String? payload,
   }) async {
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      id: id,
-      title: title,
-      body: body,
-      scheduledDate: _nextInstanceOfTime(hour, minute),
-      notificationDetails: const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'medication_channel_id',
-          'Medication Reminders',
-          channelDescription: 'Recordatorios de medicinas',
+    try {
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id: id,
+        title: title,
+        body: body,
+        scheduledDate: _nextInstanceOfTime(hour, minute),
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'medication_channel_id',
+            'Medication Reminders',
+            channelDescription: 'Recordatorios de medicinas',
+            importance: Importance.max,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode
+            .inexactAllowWhileIdle, // Fallback to inexact to avoid SecurityException on Android 14+ if exact alarms are denied
+        matchDateTimeComponents: DateTimeComponents.time,
+        payload: payload,
+      );
+      debugPrint("ALARM SCHEDULED SUCCESSFULLY: $title for $hour:$minute");
+    } catch (e) {
+      debugPrint("ERROR SCHEDULING ALARM: $e");
+    }
+  }
+
+  // ADDING THIS DEBUG METHOD TO TEST NOTIFICATIONS IMMEDIATELY
+  Future<void> showDebugNotification() async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          'debug_channel_id',
+          'Debug Notifications',
           importance: Importance.max,
           priority: Priority.high,
-        ),
-        iOS: DarwinNotificationDetails(),
-      ),
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      matchDateTimeComponents: DateTimeComponents.time,
-      payload: payload,
+          showWhen: false,
+        );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+    );
+    await flutterLocalNotificationsPlugin.show(
+      id: 9999,
+      title: 'Test de Alarma',
+      body: 'Si ves esto, las notificaciones funcionan',
+      notificationDetails: platformChannelSpecifics,
+      payload: 'item x',
     );
   }
 

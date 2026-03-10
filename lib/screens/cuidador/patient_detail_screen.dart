@@ -78,7 +78,7 @@ class PatientDetailScreen extends StatelessWidget {
             Center(child: Text("Historial de Alertas de $patientName")),
 
             // Tab 3: Medicinas (Placeholder)
-            MedicationControlScreen(),
+            MedicationControlScreen(patientId: patientId),
           ],
         ),
       ),

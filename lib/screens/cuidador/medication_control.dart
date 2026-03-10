@@ -10,10 +10,7 @@ class MedicationControlScreen extends StatelessWidget {
   final String patientId; // Requires patient ID from context/routing usually
 
   // Hardcoded for testing, ensure you pass it from the routing logic.
-  const MedicationControlScreen({
-    super.key,
-    this.patientId = 'patient_test_id',
-  });
+  const MedicationControlScreen({super.key, required this.patientId});
 
   @override
   Widget build(BuildContext context) {

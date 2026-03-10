@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:async';
+import '../../services/medication_service.dart';
+import '../../services/local_notification_service.dart';
 import 'home_paciente.dart';
 import 'medicamentos.dart';
 import 'cuidadores_of_pacientes.dart';
@@ -13,6 +17,30 @@ class PacienteMainScreen extends StatefulWidget {
 
 class _PacienteMainScreenState extends State<PacienteMainScreen> {
   int _selectedIndex = 0;
+  StreamSubscription? _medicationSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _startMedicationListener();
+  }
+
+  void _startMedicationListener() {
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _medicationSubscription = MedicationService()
+          .getPatientMedications(user.uid)
+          .listen((medications) {
+            LocalNotificationService().scheduleReminders(medications);
+          });
+    }
+  }
+
+  @override
+  void dispose() {
+    _medicationSubscription?.cancel();
+    super.dispose();
+  }
 
   // Lista de pantallas para el paciente
   final List<Widget> _screens = [

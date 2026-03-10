@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/alert_service.dart';
 
 class MedicationConfirmScreen extends StatelessWidget {
   final String
@@ -43,6 +44,17 @@ class MedicationConfirmScreen extends StatelessWidget {
         ).showSnackBar(SnackBar(content: Text('Registrado como: $status')));
         Navigator.pop(context); // Go back or close
       }
+
+      // Send alert to caregiver
+      final AlertService alertService = AlertService();
+      final msg = status == 'tomado'
+          ? 'El paciente ha registrado la toma de: $medicationName'
+          : 'El paciente ha indicado que OMITIÓ la toma de: $medicationName';
+
+      await alertService.enviarAlerta(
+        tipo: 'medicamento_confirmacion',
+        mensaje: msg,
+      );
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(
