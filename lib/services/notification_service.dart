@@ -30,14 +30,18 @@ class NotificationService {
     }
 
     // 3. Obtener el token FCM
-    String? token = await _fcm.getToken();
-    if (token != null) {
-      log('FCM Token: $token');
-      await _saveTokenToFirestore(token);
-    }
+    try {
+      String? token = await _fcm.getToken();
+      if (token != null) {
+        log('FCM Token: $token');
+        await _saveTokenToFirestore(token);
+      }
 
-    // 4. Escuchar refrescos de token
-    _fcm.onTokenRefresh.listen(_saveTokenToFirestore);
+      // 4. Escuchar refrescos de token
+      _fcm.onTokenRefresh.listen(_saveTokenToFirestore);
+    } catch (e) {
+      log("Error obteniendo el token FCM o iniciando refresh: $e");
+    }
 
     // 5. Manejar mensajes cuando la app está en PRIMER PLANO
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {

@@ -45,5 +45,16 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>fetch</string>
+	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Esta aplicación requiere acceso a la ubicación cuando está en uso para monitorear el movimiento del paciente.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Esta aplicación requiere acceso a la ubicación en segundo plano para monitorear continuamente el movimiento del paciente por su seguridad.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Esta aplicación requiere acceso a la ubicación en todo momento para asegurar que el paciente no salga de las zonas seguras incluso con la pantalla apagada.</string>
 </dict>
 </plist>

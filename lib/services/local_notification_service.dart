@@ -147,18 +147,23 @@ class LocalNotificationService {
   }
 
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
-    final tz.TZDateTime now = tz.TZDateTime.now(tz.local);
-    tz.TZDateTime scheduledDate = tz.TZDateTime(
-      tz.local,
+    // Obtenemos la hora local real *directamente* del sistema Android para evitar desfases de la librería
+    final DateTime now = DateTime.now();
+    DateTime scheduledDate = DateTime(
       now.year,
       now.month,
       now.day,
       hour,
       minute,
     );
+
+    // Si esa hora ya pasó hoy en la vida real, lo pasamos para mañana
     if (scheduledDate.isBefore(now)) {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
-    return scheduledDate;
+
+    // Convertimos ese momento exacto a la zona horaria de la librería.
+    // Como DateTime.now() nunca miente, el ScheduledDate siempre cuadrará con el reloj del usuario.
+    return tz.TZDateTime.from(scheduledDate, tz.local);
   }
 }

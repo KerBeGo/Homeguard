@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -65,18 +66,45 @@ class _HomePacienteState extends State<HomePaciente> {
       return;
     }
 
+    if (permission == LocationPermission.whileInUse) {
+      // Requerir permiso "Siempre" para mejor monitoreo en background
+      await Geolocator.requestPermission();
+    }
+
     setState(() {
       _isTracking = true;
       _statusMessage = "Monitoreo Activo";
     });
 
     // 2. Start Location Stream
-    // Update every 10 meters/10 seconds to save some battery.
-    // Constantly updating every movement drains battery fast.
-    const LocationSettings locationSettings = LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 10,
-    );
+    late LocationSettings locationSettings;
+
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      locationSettings = AndroidSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+        forceLocationManager: true,
+        intervalDuration: const Duration(seconds: 10),
+        foregroundNotificationConfig: const ForegroundNotificationConfig(
+          notificationText: "Monitoreando ubicación en segundo plano.",
+          notificationTitle: "Homeguard Activado",
+          enableWakeLock: true,
+        ),
+      );
+    } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
+      locationSettings = AppleSettings(
+        accuracy: LocationAccuracy.high,
+        activityType: ActivityType.fitness,
+        distanceFilter: 10,
+        pauseLocationUpdatesAutomatically: true,
+        showBackgroundLocationIndicator: true,
+      );
+    } else {
+      locationSettings = const LocationSettings(
+        accuracy: LocationAccuracy.high,
+        distanceFilter: 10,
+      );
+    }
 
     _positionStream =
         Geolocator.getPositionStream(locationSettings: locationSettings).listen(
