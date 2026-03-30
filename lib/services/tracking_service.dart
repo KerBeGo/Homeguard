@@ -25,7 +25,7 @@ class TrackingService {
   final GeofenceService _geofenceService = GeofenceService();
   DateTime? _lastGeofenceAlertTime;
 
-  // Creamos un stream controller o notificador simple si se requiere, pero podemos 
+  // Creamos un stream controller o notificador simple si se requiere, pero podemos
   // manejar las callbacks directas para la UI de HomePaciente.
   Function(String, bool)? onStatusChange;
 
@@ -82,7 +82,8 @@ class TrackingService {
           enableWakeLock: true,
         ),
       );
-    } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
+    } else if (defaultTargetPlatform == TargetPlatform.iOS ||
+        defaultTargetPlatform == TargetPlatform.macOS) {
       locationSettings = AppleSettings(
         accuracy: LocationAccuracy.high,
         activityType: ActivityType.fitness,
@@ -97,27 +98,35 @@ class TrackingService {
       );
     }
 
-    _positionStream = Geolocator.getPositionStream(locationSettings: locationSettings).listen((Position position) {
-      _updateLocation(user.uid, position);
-    });
+    _positionStream =
+        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
+          (Position position) {
+            _updateLocation(user.uid, position);
+          },
+        );
 
-    _batteryStateStream = _battery.onBatteryStateChanged.listen((BatteryState state) {
+    _batteryStateStream = _battery.onBatteryStateChanged.listen((
+      BatteryState state,
+    ) {
       _updateBattery(user.uid);
     });
 
     _updateBattery(user.uid);
-    _batteryLevelTimer = Timer.periodic(const Duration(minutes: 5), (_) => _updateBattery(user.uid));
+    _batteryLevelTimer = Timer.periodic(
+      const Duration(minutes: 5),
+      (_) => _updateBattery(user.uid),
+    );
   }
 
   void stopMonitoring() {
     _positionStream?.cancel();
     _batteryStateStream?.cancel();
     _batteryLevelTimer?.cancel();
-    
+
     _positionStream = null;
     _batteryStateStream = null;
     _batteryLevelTimer = null;
-    
+
     _isTracking = false;
     _notifyListeners("Monitoreo Detenido", false);
   }
@@ -142,11 +151,13 @@ class TrackingService {
 
       if (isOutside) {
         if (_lastGeofenceAlertTime == null ||
-            DateTime.now().difference(_lastGeofenceAlertTime!) > const Duration(minutes: 30)) {
+            DateTime.now().difference(_lastGeofenceAlertTime!) >
+                const Duration(minutes: 30)) {
           _lastGeofenceAlertTime = DateTime.now();
           await _alertService.enviarAlerta(
             tipo: "zona_segura",
-            mensaje: "Alerta Automática: El paciente ha salido de la zona segura.",
+            mensaje:
+                "Alerta Automática: El paciente ha salido de la zona segura.",
           );
         }
       }
@@ -159,7 +170,8 @@ class TrackingService {
     try {
       final level = await _battery.batteryLevel;
       final state = await _battery.batteryState;
-      bool isCharging = state == BatteryState.charging || state == BatteryState.full;
+      bool isCharging =
+          state == BatteryState.charging || state == BatteryState.full;
 
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'batteryLevel': level,

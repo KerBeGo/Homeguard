@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:homeguard/screens/cuidador/medication_control.dart';
 import 'ubicacion_mapa.dart';
+import 'historial_alertas_paciente.dart';
 
 class PatientDetailScreen extends StatelessWidget {
   final String patientId;
@@ -74,8 +75,8 @@ class PatientDetailScreen extends StatelessWidget {
             // Tab 1: Mapa (le pasamos el ID para que escuche la ubicación)
             MapaScreen(patientId: patientId),
 
-            // Tab 2: Alertas (Placeholder)
-            Center(child: Text("Historial de Alertas de $patientName")),
+            // Tab 2: Alertas
+            HistorialAlertasPaciente(patientId: patientId),
 
             // Tab 3: Medicinas (Placeholder)
             MedicationControlScreen(patientId: patientId),
