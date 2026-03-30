@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/usuario_model.dart';
+import 'tracking_service.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -73,6 +74,7 @@ class AuthService {
 
   // Función para Salir
   Future<void> cerrarSesion() async {
+    TrackingService().stopMonitoring();
     await _auth.signOut();
   }
 }

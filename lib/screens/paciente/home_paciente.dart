@@ -1,13 +1,8 @@
-import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:geolocator/geolocator.dart';
-import 'package:battery_plus/battery_plus.dart';
 import '../../services/alert_service.dart';
-import '../../services/geofence_service.dart';
-import 'dart:developer';
+import '../../services/tracking_service.dart';
 
 class HomePaciente extends StatefulWidget {
   const HomePaciente({super.key});
@@ -18,11 +13,8 @@ class HomePaciente extends StatefulWidget {
 
 class _HomePacienteState extends State<HomePaciente> {
   final User user = FirebaseAuth.instance.currentUser!;
-  final Battery _battery = Battery();
-
-  StreamSubscription<Position>? _positionStream;
-  StreamSubscription<BatteryState>? _batteryStateStream;
-  Timer? _batteryLevelTimer;
+  final AlertService _alertService = AlertService();
+  final TrackingService _trackingService = TrackingService();
 
   bool _isTracking = false;
   String _statusMessage = "Iniciando monitoreo...";
@@ -30,148 +22,27 @@ class _HomePacienteState extends State<HomePaciente> {
   @override
   void initState() {
     super.initState();
-    _startMonitoring();
+    _trackingService.onStatusChange = (status, isTracking) {
+      if (mounted) {
+        setState(() {
+          _statusMessage = status;
+          _isTracking = isTracking;
+        });
+      }
+    };
+
+    if (_trackingService.isTracking) {
+      _isTracking = true;
+      _statusMessage = "Monitoreo Activo";
+    } else {
+      _trackingService.startMonitoring();
+    }
   }
 
   @override
   void dispose() {
-    _positionStream?.cancel();
-    _batteryStateStream?.cancel();
-    _batteryLevelTimer?.cancel();
+    _trackingService.onStatusChange = null;
     super.dispose();
-  }
-
-  Future<void> _startMonitoring() async {
-    // 1. Permissions Check
-    bool serviceEnabled;
-    LocationPermission permission;
-
-    serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      setState(() => _statusMessage = "Ubicación desactivada");
-      return;
-    }
-
-    permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) {
-        setState(() => _statusMessage = "Permiso de ubicación denegado");
-        return;
-      }
-    }
-
-    if (permission == LocationPermission.deniedForever) {
-      setState(() => _statusMessage = "Permiso denegado permanentemente");
-      return;
-    }
-
-    if (permission == LocationPermission.whileInUse) {
-      // Requerir permiso "Siempre" para mejor monitoreo en background
-      await Geolocator.requestPermission();
-    }
-
-    setState(() {
-      _isTracking = true;
-      _statusMessage = "Monitoreo Activo";
-    });
-
-    // 2. Start Location Stream
-    late LocationSettings locationSettings;
-
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      locationSettings = AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-        forceLocationManager: true,
-        intervalDuration: const Duration(seconds: 10),
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationText: "Monitoreando ubicación en segundo plano.",
-          notificationTitle: "Homeguard Activado",
-          enableWakeLock: true,
-        ),
-      );
-    } else if (defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.macOS) {
-      locationSettings = AppleSettings(
-        accuracy: LocationAccuracy.high,
-        activityType: ActivityType.fitness,
-        distanceFilter: 10,
-        pauseLocationUpdatesAutomatically: true,
-        showBackgroundLocationIndicator: true,
-      );
-    } else {
-      locationSettings = const LocationSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-      );
-    }
-
-    _positionStream =
-        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-          (Position position) {
-            _updateLocation(position);
-          },
-        );
-
-    // 3. Start Battery Stream
-    _battery.onBatteryStateChanged.listen((BatteryState state) {
-      _updateBattery();
-    });
-
-    // Check battery level periodically (every 5 mins) as changed event is only for state (charging/discharging)
-    _updateBattery(); // Initial check
-    _batteryLevelTimer = Timer.periodic(
-      const Duration(minutes: 5),
-      (_) => _updateBattery(),
-    );
-  }
-
-  final AlertService _alertService = AlertService();
-  final GeofenceService _geofenceService = GeofenceService();
-  DateTime? _lastGeofenceAlertTime;
-
-  Future<void> _updateLocation(Position position) async {
-    // 1. Actualizar ubicación en Firestore
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-      'location': GeoPoint(position.latitude, position.longitude),
-      'lastLocationUpdate': FieldValue.serverTimestamp(),
-    });
-
-    // 2. Verificar Geocercas automáticamente
-    try {
-      bool isOutside = await _geofenceService.isPointOutsideAllGeofences(
-        user.uid,
-        GeoPoint(position.latitude, position.longitude),
-      );
-
-      if (isOutside) {
-        // Cooldown para no saturar de alertas (ej: 30 minutos)
-        if (_lastGeofenceAlertTime == null ||
-            DateTime.now().difference(_lastGeofenceAlertTime!) >
-                const Duration(minutes: 30)) {
-          _lastGeofenceAlertTime = DateTime.now();
-          await _sendAlert(
-            "zona_segura",
-            "Alerta Automática: El paciente ha salido de la zona segura.",
-          );
-        }
-      }
-    } catch (e) {
-      log("Error al verificar geocercas: $e");
-    }
-  }
-
-  Future<void> _updateBattery() async {
-    final level = await _battery.batteryLevel;
-    final state = await _battery.batteryState;
-    bool isCharging =
-        state == BatteryState.charging || state == BatteryState.full;
-
-    await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
-      'batteryLevel': level,
-      'isCharging': isCharging,
-      'lastBatteryUpdate': FieldValue.serverTimestamp(),
-    });
   }
 
   @override
