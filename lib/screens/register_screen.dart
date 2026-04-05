@@ -52,7 +52,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
     }
 
-    if (mounted) Navigator.pop(context); // Cerrar loading
+    if (!mounted) return;
+    Navigator.pop(context); // Cerrar loading
 
     if (error == null) {
       // Si todo sale bien, no hacemos nada.

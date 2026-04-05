@@ -70,7 +70,7 @@ class Medicamentos extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 12.0),
                 child: ListTile(
                   leading: CircleAvatar(
-                    backgroundColor: Colors.blue.withOpacity(0.1),
+                    backgroundColor: Colors.blue.withValues(alpha: 0.1),
                     child: const Icon(Icons.medication, color: Colors.blue),
                   ),
                   title: Text(

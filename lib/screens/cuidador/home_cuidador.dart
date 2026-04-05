@@ -44,7 +44,7 @@ class _HomeCuidadorState extends State<HomeCuidador> {
         backgroundColor: Colors.teal[600],
         onPressed: () async {
           await LocalNotificationService().showDebugNotification();
-          if (mounted) {
+          if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text("Notificación de prueba enviada")),
             );
