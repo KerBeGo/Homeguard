@@ -6,8 +6,10 @@ class Medication {
   final String categoria;
   final String frecuenciaTipo;
   final List<int>? diasEspecificos; // 1 = Monday, 7 = Sunday
+  final List<int>? diasMes; // 1 to 31
   final int? intervaloDias;
-  final int? periodoVecesMes;
+  final int? periodoCantidad;
+  final String? periodoUnidad; // 'semana', 'mes', 'año'
   final List<String> horas; // Format: "HH:mm"
   final DateTime? fechaInicio;
   final DateTime? fechaFin;
@@ -21,8 +23,10 @@ class Medication {
     required this.categoria,
     required this.frecuenciaTipo,
     this.diasEspecificos,
+    this.diasMes,
     this.intervaloDias,
-    this.periodoVecesMes,
+    this.periodoCantidad,
+    this.periodoUnidad,
     required this.horas,
     this.fechaInicio,
     this.fechaFin,
@@ -37,8 +41,10 @@ class Medication {
       'categoria': categoria,
       'frecuenciaTipo': frecuenciaTipo,
       'diasEspecificos': diasEspecificos,
+      'diasMes': diasMes,
       'intervaloDias': intervaloDias,
-      'periodoVecesMes': periodoVecesMes,
+      'periodoCantidad': periodoCantidad,
+      'periodoUnidad': periodoUnidad,
       'horas': horas,
       'fechaInicio': fechaInicio?.toIso8601String(),
       'fechaFin': fechaFin?.toIso8601String(),
@@ -57,8 +63,12 @@ class Medication {
       diasEspecificos: (map['diasEspecificos'] as List<dynamic>?)
           ?.map((e) => e as int)
           .toList(),
+      diasMes: (map['diasMes'] as List<dynamic>?)
+          ?.map((e) => e as int)
+          .toList(),
       intervaloDias: map['intervaloDias']?.toInt(),
-      periodoVecesMes: map['periodoVecesMes']?.toInt(),
+      periodoCantidad: map['periodoCantidad']?.toInt(),
+      periodoUnidad: map['periodoUnidad'],
       horas: List<String>.from(map['horas'] ?? []),
       fechaInicio: map['fechaInicio'] != null
           ? DateTime.parse(map['fechaInicio'])
@@ -78,8 +88,10 @@ class Medication {
     String? categoria,
     String? frecuenciaTipo,
     List<int>? diasEspecificos,
+    List<int>? diasMes,
     int? intervaloDias,
-    int? periodoVecesMes,
+    int? periodoCantidad,
+    String? periodoUnidad,
     List<String>? horas,
     DateTime? fechaInicio,
     DateTime? fechaFin,
@@ -93,8 +105,10 @@ class Medication {
       categoria: categoria ?? this.categoria,
       frecuenciaTipo: frecuenciaTipo ?? this.frecuenciaTipo,
       diasEspecificos: diasEspecificos ?? this.diasEspecificos,
+      diasMes: diasMes ?? this.diasMes,
       intervaloDias: intervaloDias ?? this.intervaloDias,
-      periodoVecesMes: periodoVecesMes ?? this.periodoVecesMes,
+      periodoCantidad: periodoCantidad ?? this.periodoCantidad,
+      periodoUnidad: periodoUnidad ?? this.periodoUnidad,
       horas: horas ?? this.horas,
       fechaInicio: fechaInicio ?? this.fechaInicio,
       fechaFin: fechaFin ?? this.fechaFin,

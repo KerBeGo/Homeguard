@@ -33,16 +33,20 @@ class MedicationProvider with ChangeNotifier {
   void updateFrecuencia(
     String frecuenciaTipo, {
     List<int>? diasEspecificos,
+    List<int>? diasMes,
     int? intervaloDias,
-    int? periodoVecesMes,
+    int? periodoCantidad,
+    String? periodoUnidad,
   }) {
     if (_currentMedication != null) {
       // Clear specific list values based on the new type if needed, but here we just overwrite
       _currentMedication = _currentMedication!.copyWith(
         frecuenciaTipo: frecuenciaTipo,
         diasEspecificos: diasEspecificos,
+        diasMes: diasMes,
         intervaloDias: intervaloDias,
-        periodoVecesMes: periodoVecesMes,
+        periodoCantidad: periodoCantidad,
+        periodoUnidad: periodoUnidad,
       );
       notifyListeners();
     }

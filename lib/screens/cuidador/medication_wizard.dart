@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/medication_provider.dart';
 import '../../services/medication_service.dart';
+import '../../widgets/medications/week_days_selector.dart';
+import '../../widgets/medications/month_days_selector.dart';
+import '../../widgets/medications/period_selector.dart';
 
 class MedicationWizard extends StatefulWidget {
   final String patientId;
@@ -261,7 +264,7 @@ class _MedicationWizardState extends State<MedicationWizard> {
               decoration: const InputDecoration(
                 labelText: 'Tipo de Frecuencia',
               ),
-              items: ['Diario', 'Días Específicos', 'Intervalo', 'Periodo'].map(
+              items: ['Diario', 'Días de la semana', 'Días del mes', 'Por periodo', 'Intervalo'].map(
                 (String value) {
                   return DropdownMenuItem<String>(
                     value: value,
@@ -276,12 +279,45 @@ class _MedicationWizardState extends State<MedicationWizard> {
               },
             ),
             const SizedBox(height: 24),
-            if (med.frecuenciaTipo == 'Días Específicos')
-              const Text('Selecciona los días (Por implementar detalle)'),
+            if (med.frecuenciaTipo == 'Días de la semana')
+              WeekDaysSelector(
+                initialDays: med.diasEspecificos ?? [],
+                onChanged: (days) => provider.updateFrecuencia(
+                  med.frecuenciaTipo,
+                  diasEspecificos: days,
+                  diasMes: med.diasMes,
+                  intervaloDias: med.intervaloDias,
+                  periodoCantidad: med.periodoCantidad,
+                  periodoUnidad: med.periodoUnidad,
+                ),
+              ),
+            if (med.frecuenciaTipo == 'Días del mes')
+              MonthDaysSelector(
+                initialDays: med.diasMes ?? [],
+                onChanged: (days) => provider.updateFrecuencia(
+                  med.frecuenciaTipo,
+                  diasEspecificos: med.diasEspecificos,
+                  diasMes: days,
+                  intervaloDias: med.intervaloDias,
+                  periodoCantidad: med.periodoCantidad,
+                  periodoUnidad: med.periodoUnidad,
+                ),
+              ),
+            if (med.frecuenciaTipo == 'Por periodo')
+              PeriodSelector(
+                initialCantidad: med.periodoCantidad,
+                initialUnidad: med.periodoUnidad,
+                onChanged: (cantidad, unidad) => provider.updateFrecuencia(
+                  med.frecuenciaTipo,
+                  diasEspecificos: med.diasEspecificos,
+                  diasMes: med.diasMes,
+                  intervaloDias: med.intervaloDias,
+                  periodoCantidad: cantidad,
+                  periodoUnidad: unidad,
+                ),
+              ),
             if (med.frecuenciaTipo == 'Intervalo')
               const Text('Cada X días (Por implementar detalle)'),
-            if (med.frecuenciaTipo == 'Periodo')
-              const Text('X veces al mes (Por implementar detalle)'),
             if (med.frecuenciaTipo == 'Diario')
               const Text(
                 'Se programará para todos los días.',
