@@ -17,7 +17,6 @@ class _HomePacienteState extends State<HomePaciente> {
   final TrackingService _trackingService = TrackingService();
 
   bool _isTracking = false;
-  String _statusMessage = "Iniciando monitoreo...";
 
   @override
   void initState() {
@@ -25,7 +24,6 @@ class _HomePacienteState extends State<HomePaciente> {
     _trackingService.onStatusChange = (status, isTracking) {
       if (mounted) {
         setState(() {
-          _statusMessage = status;
           _isTracking = isTracking;
         });
       }
@@ -33,7 +31,6 @@ class _HomePacienteState extends State<HomePaciente> {
 
     if (_trackingService.isTracking) {
       _isTracking = true;
-      _statusMessage = "Monitoreo Activo";
     } else {
       _trackingService.startMonitoring();
     }
@@ -48,115 +45,387 @@ class _HomePacienteState extends State<HomePaciente> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Modo Paciente"),
-        automaticallyImplyLeading: false,
-        actions: [
-          if (_isTracking)
-            const Padding(
-              padding: EdgeInsets.only(right: 16.0),
-              child: Icon(Icons.gps_fixed, color: Colors.green),
-            ),
+      backgroundColor: const Color(0xFFF5F7FA),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Real-time Firestore Stats
+              StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  Map<String, dynamic> data = {};
+                  if (snapshot.hasData && snapshot.data!.data() != null) {
+                    data = snapshot.data!.data() as Map<String, dynamic>;
+                  }
+                  
+                  final nombre = data['nombre'] ?? user.displayName;
+                  final nombreMostrar = (nombre != null && nombre.toString().trim().isNotEmpty) ? nombre : 'Usuario';
+
+                  final location = data['location'] as GeoPoint?;
+                  final lat = location?.latitude.toStringAsFixed(4) ?? '--';
+                  final lng = location?.longitude.toStringAsFixed(4) ?? '--';
+                  final battery = data['batteryLevel'] ?? '--';
+                  final isCharging = data['isCharging'] ?? false;
+                  final batteryText = isCharging ? 'Cargando' : 'Nivel óptimo';
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Greeting Section
+                      Text(
+                        "Hola, $nombreMostrar",
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        "Mantente seguro",
+                        style: TextStyle(fontSize: 16, color: Colors.blueGrey),
+                      ),
+                      const SizedBox(height: 24),
+
+                      Row(
+                        children: [
+                          // Location Card
+                          Expanded(
+                            child: _buildInfoCard(
+                              icon: Icons.location_on,
+                              iconColor: Colors.blue,
+                              title: "Ubicación",
+                              value: _isTracking ? 'Activa' : 'Inactiva',
+                              subtitle: _isTracking ? '$lat, $lng' : 'Desconocida',
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          // Battery Card
+                          Expanded(
+                            child: _buildInfoCard(
+                              icon: Icons.battery_charging_full,
+                              iconColor: Colors.green,
+                              title: "Batería",
+                              value: '$battery%',
+                              subtitle: batteryText,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+              const SizedBox(height: 40),
+
+              // Emergency Button Section
+              Center(
+                child: Column(
+                  children: [
+                    const Text(
+                      "Botón de Emergencia",
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      "Presiona el botón si necesitas ayuda inmediata",
+                      style: TextStyle(fontSize: 14, color: Colors.blueGrey),
+                    ),
+                    const SizedBox(height: 32),
+                    GestureDetector(
+                      onTap: () =>
+                          _sendAlert("sos", "¡Solicitud de ayuda SOS!"),
+                      child: Container(
+                        width: 200,
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE63946),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFE63946).withOpacity(0.4),
+                              blurRadius: 25,
+                              spreadRadius: 5,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.warning_amber_rounded,
+                              color: Colors.white,
+                              size: 50,
+                            ),
+                            SizedBox(height: 8),
+                            Text(
+                              "SOS",
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 40,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 48),
+
+              // Caregivers Section
+              const Text(
+                "Mis Cuidadores",
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 16),
+              StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('connections')
+                    .where('pacienteId', isEqualTo: user.uid)
+                    .where('status', isEqualTo: 'active')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    );
+                  }
+
+                  if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                    return Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.people_outline,
+                            size: 60,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            "No tienes cuidadores aún",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+
+                  final connections = snapshot.data!.docs;
+                  return ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: connections.length,
+                    itemBuilder: (context, index) {
+                      final connData =
+                          connections[index].data() as Map<String, dynamic>;
+                      final cuidadorId = connData['cuidadorId'] as String?;
+                      if (cuidadorId == null) return const SizedBox.shrink();
+
+                      return FutureBuilder<DocumentSnapshot>(
+                        future: FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(cuidadorId)
+                            .get(),
+                        builder: (context, userSnapshot) {
+                          if (!userSnapshot.hasData)
+                            return const SizedBox.shrink();
+                          final userData =
+                              userSnapshot.data?.data()
+                                  as Map<String, dynamic>?;
+                          if (userData == null) return const SizedBox.shrink();
+
+                          final nombre =
+                              userData['nombre'] ??
+                              userData['displayName'] ??
+                              'Cuidador Desconocido';
+
+                          return Card(
+                            elevation: 0,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: BorderSide(color: Colors.grey.shade200),
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: Colors.blue.shade50,
+                                child: const Icon(
+                                  Icons.person,
+                                  color: Colors.blue,
+                                ),
+                              ),
+                              title: Text(
+                                nombre,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: const Text("Cuidador Activo"),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  );
+                },
+              ),
+
+              const SizedBox(height: 80),
+              const Divider(),
+              const SizedBox(height: 24),
+
+              // Seccion Inferior (Requiere scroll)
+              OptionallyHiddenSection(user: user),
+
+              const SizedBox(height: 32),
+              const Center(
+                child: Text(
+                  "Simular Alertas (Pruebas)",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _buildAlertButton(
+                      context,
+                      label: "SOS",
+                      icon: Icons.sos,
+                      color: Colors.red,
+                      onPressed: () =>
+                          _sendAlert("sos", "¡Solicitud de ayuda SOS!"),
+                    ),
+                    _buildAlertButton(
+                      context,
+                      label: "Caída",
+                      icon: Icons.personal_injury,
+                      color: Colors.orange,
+                      onPressed: () => _sendAlert(
+                        "caida",
+                        "Se ha detectado una posible caída",
+                      ),
+                    ),
+                    _buildAlertButton(
+                      context,
+                      label: "Medicina",
+                      icon: Icons.medication,
+                      color: Colors.purple,
+                      onPressed: () => _sendAlert(
+                        "medicamento",
+                        "Recordatorio de medicamento pendiente",
+                      ),
+                    ),
+                    _buildAlertButton(
+                      context,
+                      label: "Zona Segura",
+                      icon: Icons.map,
+                      color: Colors.blue,
+                      onPressed: () => _sendAlert(
+                        "zona_segura",
+                        "El paciente ha salido de la zona segura",
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 40),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String value,
+    required String subtitle,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.06),
+            blurRadius: 10,
+            spreadRadius: 1,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              _isTracking ? Icons.security : Icons.security_update_warning,
-              size: 80,
-              color: _isTracking ? Colors.blue : Colors.orange,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              _statusMessage,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 40),
-            const Text("Tu código para el cuidador:"),
-
-            // Leemos el código desde Firestore en tiempo real
-            FutureBuilder<DocumentSnapshot>(
-              future: FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .get(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) return const CircularProgressIndicator();
-                // Obtenemos el dato del mapa
-                var data = snapshot.data!.data() as Map<String, dynamic>;
-                return Text(
-                  data['codigoVinculacion'] ?? "Sin código",
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: iconColor, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
                   style: const TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.blueGrey,
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 20),
-            if (_isTracking)
-              const Text(
-                "Compartiendo ubicación y batería...",
-                style: TextStyle(color: Colors.green),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            const SizedBox(height: 40),
-            const Divider(),
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 16),
-              child: Text(
-                "Simular Alertas",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(
+            value,
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
             ),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              alignment: WrapAlignment.center,
-              children: [
-                _buildAlertButton(
-                  context,
-                  label: "SOS",
-                  icon: Icons.sos,
-                  color: Colors.red,
-                  onPressed: () =>
-                      _sendAlert("sos", "¡Solicitud de ayuda SOS!"),
-                ),
-                _buildAlertButton(
-                  context,
-                  label: "Caída",
-                  icon: Icons.personal_injury,
-                  color: Colors.orange,
-                  onPressed: () =>
-                      _sendAlert("caida", "Se ha detectado una posible caída"),
-                ),
-                _buildAlertButton(
-                  context,
-                  label: "Medicina",
-                  icon: Icons.medication,
-                  color: Colors.purple,
-                  onPressed: () => _sendAlert(
-                    "medicamento",
-                    "Recordatorio de medicamento pendiente",
-                  ),
-                ),
-                _buildAlertButton(
-                  context,
-                  label: "Zona Segura",
-                  icon: Icons.map,
-                  color: Colors.blue,
-                  onPressed: () => _sendAlert(
-                    "zona_segura",
-                    "El paciente ha salido de la zona segura",
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
@@ -173,9 +442,11 @@ class _HomePacienteState extends State<HomePaciente> {
         backgroundColor: color,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       onPressed: onPressed,
-      icon: Icon(icon),
+      icon: Icon(icon, size: 18),
       label: Text(label),
     );
   }
@@ -201,5 +472,53 @@ class _HomePacienteState extends State<HomePaciente> {
         );
       }
     }
+  }
+}
+
+class OptionallyHiddenSection extends StatelessWidget {
+  final User user;
+  const OptionallyHiddenSection({super.key, required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 0,
+      color: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              "Tu código de vinculación:",
+              style: TextStyle(fontSize: 14, color: Colors.blueGrey),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            FutureBuilder<DocumentSnapshot>(
+              future: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .get(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData)
+                  return const Center(child: CircularProgressIndicator());
+                var data = snapshot.data!.data() as Map<String, dynamic>;
+                return Text(
+                  data['codigoVinculacion'] ?? "Sin código",
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4,
+                  ),
+                  textAlign: TextAlign.center,
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
