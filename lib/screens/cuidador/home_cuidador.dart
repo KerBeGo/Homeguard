@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:homeguard/services/local_notification_service.dart';
 import 'vincular_paciente.dart';
 import 'patient_detail_screen.dart';
+// import 'package:homeguard/services/local_notification_service.dart';
 
 class HomeCuidador extends StatefulWidget {
   const HomeCuidador({super.key});
@@ -39,19 +39,19 @@ class _HomeCuidadorState extends State<HomeCuidador> {
           const SliverToBoxAdapter(child: SizedBox(height: 30)),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        tooltip: "Probar Notificación Local",
-        backgroundColor: Colors.teal[600],
-        onPressed: () async {
-          await LocalNotificationService().showDebugNotification();
-          if (context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Notificación de prueba enviada")),
-            );
-          }
-        },
-        child: const Icon(Icons.notification_add_outlined, color: Colors.white),
-      ),
+      // floatingActionButton: FloatingActionButton(
+      //   tooltip: "Probar Notificación Local",
+      //   backgroundColor: Colors.teal[600],
+      //   onPressed: () async {
+      //     await LocalNotificationService().showDebugNotification();
+      //     if (context.mounted) {
+      //       ScaffoldMessenger.of(context).showSnackBar(
+      //         const SnackBar(content: Text("Notificación de prueba enviada")),
+      //       );
+      //     }
+      //   },
+      //   child: const Icon(Icons.notification_add_outlined, color: Colors.white),
+      // ),
     );
   }
 

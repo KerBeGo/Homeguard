@@ -15,6 +15,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   String _rolSeleccionado = 'PACIENTE';
   final AuthService _authService = AuthService();
+  bool _obscurePassword = true; // Controla si la contraseña está oculta
 
   // ESTA ES LA CLAVE: Una variable para saber en qué modo estamos
   bool _esRegistro = false; // Empieza en false para mostrar LOGIN primero
@@ -108,10 +109,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 10),
               TextField(
                 controller: _passController,
-                obscureText: true,
-                decoration: const InputDecoration(
+                obscureText: _obscurePassword,
+                decoration: InputDecoration(
                   labelText: "Contraseña",
-                  prefixIcon: Icon(Icons.lock),
+                  prefixIcon: const Icon(Icons.lock),
+                  suffixIcon: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_off
+                          : Icons.visibility,
+                    ),
+                    onPressed: () {
+                      setState(() {
+                        _obscurePassword = !_obscurePassword;
+                      });
+                    },
+                  ),
                 ),
               ),
 

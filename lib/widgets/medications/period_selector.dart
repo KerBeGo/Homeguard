@@ -87,7 +87,7 @@ class _PeriodSelectorState extends State<PeriodSelector> {
             // Dropdown for period
             Expanded(
               child: DropdownButtonFormField<String>(
-                value: _selectedUnidad,
+                initialValue: _selectedUnidad,
                 decoration: const InputDecoration(
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 12),

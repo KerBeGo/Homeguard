@@ -153,7 +153,7 @@ class _HomePacienteState extends State<HomePaciente> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFE63946).withOpacity(0.4),
+                              color: const Color(0xFFE63946).withValues(alpha: 0.4),
                               blurRadius: 25,
                               spreadRadius: 5,
                               offset: const Offset(0, 8),
@@ -252,8 +252,9 @@ class _HomePacienteState extends State<HomePaciente> {
                             .doc(cuidadorId)
                             .get(),
                         builder: (context, userSnapshot) {
-                          if (!userSnapshot.hasData)
+                          if (!userSnapshot.hasData) {
                             return const SizedBox.shrink();
+                          }
                           final userData =
                               userSnapshot.data?.data()
                                   as Map<String, dynamic>?;
@@ -383,7 +384,7 @@ class _HomePacienteState extends State<HomePaciente> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.06),
+            color: Colors.grey.withValues(alpha: 0.06),
             blurRadius: 10,
             spreadRadius: 1,
             offset: const Offset(0, 4),
@@ -502,8 +503,9 @@ class OptionallyHiddenSection extends StatelessWidget {
                   .doc(user.uid)
                   .get(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (!snapshot.hasData) {
                   return const Center(child: CircularProgressIndicator());
+                }
                 var data = snapshot.data!.data() as Map<String, dynamic>;
                 return Text(
                   data['codigoVinculacion'] ?? "Sin código",

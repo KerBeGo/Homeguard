@@ -58,7 +58,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: '***REMOVED***',
+    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_IOS'),
     appId: '1:1042683285867:ios:ee6529d51d1a693968bc2e',
     messagingSenderId: '1042683285867',
     projectId: 'homeguard-aa17f',
@@ -67,7 +67,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: '***REMOVED***',
+    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_IOS'),
     appId: '1:1042683285867:ios:ee6529d51d1a693968bc2e',
     messagingSenderId: '1042683285867',
     projectId: 'homeguard-aa17f',

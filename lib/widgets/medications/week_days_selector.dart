@@ -64,7 +64,7 @@ class _WeekDaysSelectorState extends State<WeekDaysSelector> {
             controlAffinity: ListTileControlAffinity.leading,
             activeColor: Theme.of(context).primaryColor,
           );
-        }).toList(),
+        }),
       ],
     );
   }

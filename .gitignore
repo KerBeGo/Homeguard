@@ -39,6 +39,14 @@ app.*.symbols
 # Obfuscation related
 app.*.map.json
 
+# Secretos y Configuración Local
+.env
+.env.example
+android/local.properties
+ios/Flutter/Config.xcconfig
+*.jks
+*.keystore
+
 # Android Studio will place build artifacts here
 /android/app/debug
 /android/app/profile
