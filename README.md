@@ -1,102 +1,190 @@
-# homeguard
+# 🏠 HomeGuard
 
-A new Flutter project for a thesis.
+> **Sistema Integral de Teleasistencia Móvil** — Monitoreo remoto e inteligente de adultos mayores y pacientes dependientes desde un smartphone convencional.
 
-# version
+HomeGuard es una aplicación móvil desarrollada en **Flutter** como proyecto de tesis de ingeniería. Permite que familiares o cuidadores supervisen en tiempo real la ubicación, el estado de salud y las alertas de emergencia de sus pacientes, todo desde sus propios teléfonos celulares, sin necesidad de hardware especializado.
 
-Flutter 3.38.3 • channel stable • https://github.com/KerBeGo/flutter.git
-Framework • revision 19074d12f7 (3 months ago) • 2025-11-20 17:53:13 -0500
-Engine • hash 8bf2090718fea3655f466049a757f823898f0ad1 (revision 13e658725d) (2 months ago) •
-2025-11-20 20:19:23.000Z
-Tools • Dart 3.10.1 • DevTools 2.51.1
+---
 
-# 1. Resumen de la Idea (El "Pitch" de la Tesis)
+## 🎯 ¿Qué problema resuelve?
 
-Nombre del Proyecto: HomeGuard Tipo: Sistema Integral de Teleasistencia Móvil basado en IA. Objetivo: Permitir el monitoreo remoto, no intrusivo y eficiente de adultos mayores o pacientes dependientes mediante el uso de sensores de dispositivos móviles estándar.
+El cuidado de adultos mayores o personas dependientes implica una constante preocupación por su seguridad cuando no están acompañados. HomeGuard actúa como un **sistema de vigilancia no intrusivo** que:
 
-Diferenciadores Técnicos (Mi aporte a la ingeniería):
+- Detecta **caídas** automáticamente mediante el acelerómetro del dispositivo.
+- Monitorea si el paciente **abandona una zona segura** (geocerca).
+- Envía **alertas de emergencia (SOS)** con un solo toque.
+- Controla el **cumplimiento de medicamentos** con recordatorios programados.
+- Avisa cuando la **batería del dispositivo** del paciente está crítica.
 
-Dualidad de Roles: Una sola aplicación que muta según si el usuario es "Cuidador" o "Paciente".
+---
 
-Inteligencia Artificial en el Borde (Edge AI): Uso de modelos TensorFlow Lite en el dispositivo para detectar caídas (acelerómetro) y auxilios de audio sin enviar datos sensibles a la nube constantemente.
+## ✨ Características Principales
 
-Gestión Energética: Algoritmos de "despertar" (triggers) para no drenar la batería del paciente con el GPS.
+| Funcionalidad                         | Descripción                                                                 |
+| ------------------------------------- | --------------------------------------------------------------------------- |
+| 👥 **Doble Rol**                      | Una sola app que cambia su interfaz según seas Paciente o Cuidador          |
+| 📍 **Geolocalización en tiempo real** | Tracking GPS continuo del paciente con Google Maps                          |
+| 🔔 **Alertas Push (FCM)**             | Notificaciones instantáneas de SOS, caídas, salida de zona y medicamentos   |
+| 🗺️ **Geocercas**                      | El cuidador dibuja zonas seguras; si el paciente sale, se genera una alerta |
+| 💊 **Control de Medicamentos**        | Recordatorios programados por días de la semana, días del mes o período     |
+| 🔋 **Monitor de Batería**             | Alerta al cuidador cuando la batería del paciente cae a niveles críticos    |
+| 🤝 **Vinculación segura**             | Sistema de códigos de invitación para conectar Cuidador ↔ Paciente          |
+| 📜 **Historial de Alertas**           | Registro de todos los eventos de seguridad del paciente                     |
 
-Seguridad Integral: Geocercas (zonas seguras), alertas de batería crítica y control de medicación.
+---
 
-# 2. Lo que YA tienes avanzado (✅ Hecho)
+## 🏗️ Arquitectura
 
-He superado la etapa de "Configuración", que suele ser donde muchos se traban.
+```
+homeguard/
+├── lib/
+│   ├── main.dart                  # Punto de entrada
+│   ├── firebase_options.dart      # Configuración de Firebase
+│   ├── models/                    # Modelos de datos (Dart ↔ Firestore)
+│   ├── providers/                 # Estado global con Provider
+│   ├── screens/
+│   │   ├── acceso_screen.dart     # Gatekeeper: detecta rol y redirige
+│   │   ├── paciente/              # Pantallas del flujo Paciente
+│   │   └── cuidador/              # Pantallas del flujo Cuidador
+│   ├── services/                  # Firebase Auth, Firestore, FCM, Tracking
+│   ├── utils/                     # Helpers y constantes
+│   └── widgets/                   # Componentes reutilizables (medicamentos, etc.)
+├── android/                       # Configuración Android (API keys en local.properties)
+├── functions/                     # Cloud Functions de Firebase (notificaciones push)
+└── assets/                        # Imágenes y recursos estáticos
+```
 
-A. Infraestructura y Backend (Firebase)
+**Backend:** Firebase (Firestore + Authentication + Cloud Messaging + Cloud Functions)  
+**Estado:** Provider Pattern  
+**Mapas:** Google Maps Flutter  
+**Sensores:** `geolocator`, `battery_plus`
 
-✅ Proyecto creado: Firebase Console configurado con homeguard.
+---
 
-✅ Servicios Activos: Firestore Database (Base de datos NoSQL) y Authentication habilitados.
+## 🚀 Cómo ejecutar el proyecto
 
-✅ Conexión: FlutterFire CLI configurado y enlazado con tu app Android.
+### Prerrequisitos
 
-B. Arquitectura de la App (Flutter)
+Asegúrate de tener instalado:
 
-✅ Estructura de Carpetas: Modelos (models), Servicios (services), Pantallas (screens).
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) `>=3.10.1`
+- [Dart SDK](https://dart.dev/get-dart) `>=3.10.1`
+- [Android Studio](https://developer.android.com/studio) o VS Code con extensiones Flutter/Dart
+- Una cuenta de [Firebase](https://firebase.google.com/) con un proyecto configurado
+- Una clave de API de [Google Maps Platform](https://developers.google.com/maps) con la **Maps SDK for Android** habilitada
 
-✅ Modelo de Datos: Clase UsuarioModel creada para mapear objetos Dart <-> JSON de Firestore.
+### 1. Clonar el repositorio
 
-✅ Gestión de Errores: Solución de problemas de compilación (Gradle, Memoria RAM, Path de Windows).
+```bash
+git clone https://github.com/KerBeGo/homeguard.git
+cd homeguard
+```
 
-C. Lógica de Acceso y Roles
+### 2. Configurar las variables de entorno
 
-✅ Servicio de Autenticación: Registro de usuarios con correo/contraseña que guarda automáticamente datos extra en Firestore.
+Crea un archivo `.env` en la raíz del proyecto basándote en la siguiente plantilla:
 
-✅ Discriminación de Roles: El sistema pregunta al registrarse si eres "Paciente" o "Cuidador".
+```env
+MAPS_API_KEY=tu_api_key_de_google_maps
+FIREBASE_API_KEY_ANDROID=tu_firebase_api_key_android
+FIREBASE_API_KEY_IOS=tu_firebase_api_key_ios
+FIREBASE_API_KEY_WEB=tu_firebase_api_key_web
+```
 
-✅ El "Portero" (Gatekeeper): Un StreamBuilder en acceso_screen.dart que detecta la sesión y redirige automáticamente a la pantalla correcta (HomePaciente o HomeCuidador) según el rol en la base de datos.
+> ⚠️ **IMPORTANTE:** El archivo `.env` es para uso local. Las claves se obtienen desde la [Firebase Console](https://console.firebase.google.com/) y la [Google Cloud Console](https://console.cloud.google.com/).
 
-✅ Interfaz Dinámica: Pantalla de Login/Registro unificada que cambia de forma con un botón.
+### 3. Configurar Firebase
 
-D. La Conexión
+Si vas a usar tu propio proyecto de Firebase, ejecuta `flutterfire configure` para regenerar `firebase_options.dart`:
 
-✅Antes de monitorear, se necesita unir dos celulares.
+```bash
+dart pub global activate flutterfire_cli
+flutterfire configure
+```
 
-✅Generar Código: (Ya está en mi código, falta mostrarlo bonito).
+### 4. Instalar dependencias
 
-✅Vincular: Crear la pantalla en el Cuidador para escribir el código del Paciente.
+```bash
+flutter pub get
+```
 
-✅Backend: Hacer la función que crea el documento en la colección connections.
+### 5. Ejecutar la aplicación
 
-3. Lo que te FALTA (🚧 Hoja de Ruta)
-   Aquí está mi trabajo para las próximas semanas, ordenado por prioridad lógica:
+**En un emulador o dispositivo Android conectado:**
 
-# Fase 1: El Tablero de Control (Prioridad Media)
+```bash
+flutter run
+```
 
-Lista de Pacientes: Que el cuidador vea a quién cuida (leer de Firestore).
+**Para elegir un dispositivo específico:**
 
-Detalle del Paciente: Crear la pantalla con pestañas (Mapa | Alertas | Medicinas).
+```bash
+flutter devices          # Lista los dispositivos disponibles
+flutter run -d <device_id>
+```
 
-# Fase 2: Funcionalidades Core (La "Ingeniería")
+**Para compilar un APK de debug:**
 
-Geolocalización:
+```bash
+flutter build apk --debug
+```
 
-Implementar geolocator en el paciente.
+---
 
-Integrar Google Maps en el cuidador.
+## 📦 Dependencias Principales
 
-Lógica matemática de "Punto en Polígono" (Geocerca).
+| Paquete                       | Versión  | Uso                               |
+| ----------------------------- | -------- | --------------------------------- |
+| `firebase_core`               | ^4.4.0   | Inicialización de Firebase        |
+| `firebase_auth`               | ^6.1.4   | Autenticación de usuarios         |
+| `cloud_firestore`             | ^6.1.2   | Base de datos en tiempo real      |
+| `firebase_messaging`          | 16.1.1   | Notificaciones push (FCM)         |
+| `google_maps_flutter`         | ^2.14.0  | Mapas y geocercas                 |
+| `geolocator`                  | ^13.0.2  | GPS y localización                |
+| `battery_plus`                | ^6.2.1   | Monitor de batería                |
+| `flutter_local_notifications` | ^21.0.0  | Notificaciones locales            |
+| `provider`                    | ^6.1.5+1 | Gestión de estado                 |
+| `timezone`                    | ^0.11.0  | Zonas horarias para recordatorios |
 
-Batería:
+---
 
-Leer nivel de batería y enviarlo a Firestore (package:battery_plus).
+## 👤 Flujo de la Aplicación
 
-Notificaciones (FCM):
+```
+Inicio
+  └── acceso_screen.dart (Gatekeeper)
+        ├── Usuario NO autenticado → LoginScreen / RegisterScreen
+        └── Usuario autenticado
+              ├── Rol "paciente" → HomePaciente
+              │     ├── Botón SOS
+              │     ├── Tracking GPS en segundo plano
+              │     └── Recordatorios de medicamentos
+              └── Rol "cuidador" → HomeCuidador
+                    ├── Lista de pacientes vinculados
+                    ├── Mapa en tiempo real con geocercas
+                    └── Historial de alertas por paciente
+```
 
-Obtener y guardar el fcmToken al iniciar sesión.
+---
 
-Configurar Cloud Functions (o lógica local) para enviar la alerta push.
+## 🛠️ Estado del Proyecto
 
-# Fase 3: Inteligencia Artificial (El "Broche de Oro")
+- ✅ Autenticación y discriminación de roles
+- ✅ Vinculación Cuidador ↔ Paciente por código
+- ✅ Geolocalización y Google Maps
+- ✅ Geocercas (zonas seguras)
+- ✅ Notificaciones push con Firebase Cloud Messaging
+- ✅ Alertas: SOS, caída, medicamento, salida de zona, batería crítica
+- ✅ Control de medicamentos con recordatorios programados
+- ✅ Tracking GPS en segundo plano
+- ✅ Historial de alertas
 
-Sensores: Leer el acelerómetro en tiempo real (sensors_plus).
+---
 
-Integración TFLite: Entrenar (o descargar) un modelo simple de detección de caídas e integrarlo en Flutter.
+## 📄 Licencia
 
-Optimización: Aplicar la lógica de "Solo encender GPS si sale de casa" para ahorrar batería.
+Este proyecto fue desarrollado como **trabajo de tesis de grado** en Ingeniería. Uso académico.
+
+---
+
+<p align="center">Desarrollado con ❤️ por <strong>Kerwin Bencomo</strong></p>
