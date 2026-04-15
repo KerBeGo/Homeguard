@@ -41,7 +41,6 @@ app.*.map.json
 
 # Secretos y Configuración Local
 .env
-.env.example
 android/local.properties
 ios/Flutter/Config.xcconfig
 *.jks
