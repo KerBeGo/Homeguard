@@ -41,7 +41,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: '***REMOVED***',
+    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_WEB'),
     appId: '1:1042683285867:web:689fecb64ded5e5468bc2e',
     messagingSenderId: '1042683285867',
     projectId: 'homeguard-aa17f',
@@ -50,7 +50,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: '***REMOVED***',
+    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_ANDROID'),
     appId: '1:1042683285867:android:f8610ea7decab53968bc2e',
     messagingSenderId: '1042683285867',
     projectId: 'homeguard-aa17f',
@@ -76,7 +76,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: '***REMOVED***',
+    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_WEB'),
     appId: '1:1042683285867:web:ae37893defa414fb68bc2e',
     messagingSenderId: '1042683285867',
     projectId: 'homeguard-aa17f',
