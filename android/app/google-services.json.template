@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1042683285867",
+    "project_id": "homeguard-aa17f",
+    "storage_bucket": "homeguard-aa17f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1042683285867:android:f8610ea7decab53968bc2e",
+        "android_client_info": {
+          "package_name": "com.example.homeguard"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "@@FIREBASE_API_KEY_ANDROID@@"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

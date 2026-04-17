@@ -64,3 +64,36 @@ dependencies {
     // Si necesitas la de kotlin (opcional si ya funciona)
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0")
 }
+
+// Tarea para generar google-services.json desde .env automáticamente
+tasks.register("generateGoogleServices") {
+    val envFile = rootProject.file(".env")
+    val templateFile = file("google-services.json.template")
+    val outputFile = file("google-services.json")
+
+    inputs.file(envFile)
+    inputs.file(templateFile)
+    outputs.file(outputFile)
+
+    doLast {
+        if (!envFile.exists()) {
+            println("ALERTA: Archivo .env no encontrado en la raíz.")
+            return@doLast
+        }
+        val env = java.util.Properties()
+        envFile.inputStream().use { env.load(it) }
+        val apiKey = env.getProperty("FIREBASE_API_KEY_ANDROID") ?: ""
+
+        if (apiKey.isNotEmpty() && templateFile.exists()) {
+            val content = templateFile.readText().replace("@@FIREBASE_API_KEY_ANDROID@@", apiKey)
+            outputFile.writeText(content)
+            println("INFO: google-services.json actualizado desde .env")
+        }
+    }
+}
+
+// Asegurar que la tarea corra antes de que el plugin de Google Services procese el archivo
+tasks.matching { it.name.startsWith("process") && it.name.endsWith("GoogleServices") }.all {
+    dependsOn("generateGoogleServices")
+}
+

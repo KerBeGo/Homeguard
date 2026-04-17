@@ -42,6 +42,7 @@ app.*.map.json
 # Secretos y Configuración Local
 .env
 android/local.properties
+android/app/google-services.json
 ios/Flutter/Config.xcconfig
 *.jks
 *.keystore
