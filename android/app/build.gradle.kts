@@ -1,4 +1,5 @@
 import java.util.Properties
+import groovy.json.JsonSlurper
 
 plugins {
     id("com.android.application")
@@ -21,18 +22,31 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+        }
     }
 
     defaultConfig {
-        // ...
         val localPropertiesFile = rootProject.file("local.properties")
         val localProperties = Properties()
         if (localPropertiesFile.exists()) {
             localProperties.load(localPropertiesFile.inputStream())
         }
-        val mapsApiKey = localProperties.getProperty("maps.api.key") ?: ""
+
+        val secretsFile = rootProject.file("../secrets.json")
+        var mapsApiKey = ""
+        if (secretsFile.exists()) {
+            val json = JsonSlurper().parseText(secretsFile.readText())
+            if (json is Map<*, *>) {
+                mapsApiKey = json["MAPS_API_KEY"]?.toString() ?: ""
+            }
+        }
+        
+        if (mapsApiKey.isEmpty()) {
+            mapsApiKey = localProperties.getProperty("maps.api.key") ?: ""
+        }
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
         
         applicationId = "com.example.homeguard"
@@ -67,22 +81,24 @@ dependencies {
 
 // Tarea para generar google-services.json desde .env automáticamente
 tasks.register("generateGoogleServices") {
-    val envFile = rootProject.file(".env")
+    val secretsFile = rootProject.file("../secrets.json")
     val templateFile = file("google-services.json.template")
     val outputFile = file("google-services.json")
 
-    inputs.file(envFile)
+    inputs.file(secretsFile)
     inputs.file(templateFile)
     outputs.file(outputFile)
 
     doLast {
-        if (!envFile.exists()) {
-            println("ALERTA: Archivo .env no encontrado en la raíz.")
+        if (!secretsFile.exists()) {
+            println("ALERTA: Archivo secrets.json no encontrado en la raíz.")
             return@doLast
         }
-        val env = java.util.Properties()
-        envFile.inputStream().use { env.load(it) }
-        val apiKey = env.getProperty("FIREBASE_API_KEY_ANDROID") ?: ""
+        val json = JsonSlurper().parseText(secretsFile.readText())
+        var apiKey = ""
+        if (json is Map<*, *>) {
+            apiKey = json["FIREBASE_API_KEY_ANDROID"]?.toString() ?: ""
+        }
 
         if (apiKey.isNotEmpty() && templateFile.exists()) {
             val content = templateFile.readText().replace("@@FIREBASE_API_KEY_ANDROID@@", apiKey)

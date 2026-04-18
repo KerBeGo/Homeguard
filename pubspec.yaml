@@ -45,6 +45,7 @@ dependencies:
   timezone: ^0.11.0
   provider: ^6.1.5+1
   flutter_timezone: ^5.0.1
+  flutter_dotenv: ^5.1.0
 
 dev_dependencies:
   flutter_test:
@@ -67,6 +68,7 @@ flutter:
   # the material Icons class.
   uses-material-design: true
   assets:
+    - .env
     - assets/HOMEGUARD.png
     - assets/HOMEGUARD_2.png
 
