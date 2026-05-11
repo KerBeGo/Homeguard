@@ -41,7 +41,7 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_WEB'),
+    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_WEB', defaultValue: 'AIzaSyAPNqKplYoiwvykfXkfFSZiyL3SH_KUpms'),
     appId: '1:1042683285867:web:689fecb64ded5e5468bc2e',
     messagingSenderId: '1042683285867',
     projectId: 'homeguard-aa17f',
@@ -50,7 +50,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_ANDROID'),
+    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_ANDROID', defaultValue: 'AIzaSyCi1AH4eul81hciiFPvk0xglgCd0GUQKds'),
     appId: '1:1042683285867:android:f8610ea7decab53968bc2e',
     messagingSenderId: '1042683285867',
     projectId: 'homeguard-aa17f',
@@ -58,7 +58,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_IOS'),
+    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_IOS', defaultValue: 'AIzaSyDfaNXaXXdJNKEr77lT_gjsqlqE7YcFOco'),
     appId: '1:1042683285867:ios:ee6529d51d1a693968bc2e',
     messagingSenderId: '1042683285867',
     projectId: 'homeguard-aa17f',
@@ -67,7 +67,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_IOS'),
+    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_IOS', defaultValue: 'AIzaSyDfaNXaXXdJNKEr77lT_gjsqlqE7YcFOco'),
     appId: '1:1042683285867:ios:ee6529d51d1a693968bc2e',
     messagingSenderId: '1042683285867',
     projectId: 'homeguard-aa17f',
@@ -76,7 +76,7 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_WEB'),
+    apiKey: const String.fromEnvironment('FIREBASE_API_KEY_WEB', defaultValue: 'AIzaSyAPNqKplYoiwvykfXkfFSZiyL3SH_KUpms'),
     appId: '1:1042683285867:web:ae37893defa414fb68bc2e',
     messagingSenderId: '1042683285867',
     projectId: 'homeguard-aa17f',

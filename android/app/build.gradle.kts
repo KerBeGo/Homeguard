@@ -21,9 +21,7 @@ android {
         isCoreLibraryDesugaringEnabled = true
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    // Remove kotlinOptions from here
 
     defaultConfig {
         // ...
@@ -52,6 +50,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    packaging {
+        jniLibs {
+            keepDebugSymbols.add("**/*.so")
+        }
+    }
 }
 
 flutter {
@@ -67,12 +71,12 @@ dependencies {
 
 // Tarea para generar google-services.json desde .env automáticamente
 tasks.register("generateGoogleServices") {
-    val envFile = rootProject.file(".env")
+    val envFile = rootProject.file("../.env")
     val templateFile = file("google-services.json.template")
     val outputFile = file("google-services.json")
 
-    inputs.file(envFile)
-    inputs.file(templateFile)
+    inputs.file(envFile).optional()
+    inputs.file(templateFile).optional()
     outputs.file(outputFile)
 
     doLast {
@@ -80,7 +84,7 @@ tasks.register("generateGoogleServices") {
             println("ALERTA: Archivo .env no encontrado en la raíz.")
             return@doLast
         }
-        val env = java.util.Properties()
+        val env = Properties()
         envFile.inputStream().use { env.load(it) }
         val apiKey = env.getProperty("FIREBASE_API_KEY_ANDROID") ?: ""
 
@@ -97,3 +101,8 @@ tasks.matching { it.name.startsWith("process") && it.name.endsWith("GoogleServic
     dependsOn("generateGoogleServices")
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}

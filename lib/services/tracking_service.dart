@@ -4,8 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:battery_plus/battery_plus.dart';
+import '../models/geofence_model.dart';
 import 'alert_service.dart';
 import 'geofence_service.dart';
+import 'sensor_service.dart';
 import 'dart:developer';
 
 class TrackingService {
@@ -24,6 +26,7 @@ class TrackingService {
   final AlertService _alertService = AlertService();
   final GeofenceService _geofenceService = GeofenceService();
   DateTime? _lastGeofenceAlertTime;
+  List<GeofenceModel> _localGeofences = []; // Cache local de geocercas
 
   // Creamos un stream controller o notificador simple si se requiere, pero podemos
   // manejar las callbacks directas para la UI de HomePaciente.
@@ -68,6 +71,14 @@ class TrackingService {
 
     _isTracking = true;
     _notifyListeners("Monitoreo Activo", true);
+    
+    // Iniciar monitoreo de sensores (IA Local para caídas)
+    SensorService().startMonitoring();
+
+    // Cargar geocercas localmente para uso offline
+    _geofenceService.getActiveGeofences(user.uid).first.then((list) {
+      _localGeofences = list;
+    });
 
     late LocationSettings locationSettings;
     if (defaultTargetPlatform == TargetPlatform.android) {
@@ -129,6 +140,9 @@ class TrackingService {
 
     _isTracking = false;
     _notifyListeners("Monitoreo Detenido", false);
+    
+    // Detener sensores
+    SensorService().stopMonitoring();
   }
 
   void _notifyListeners(String status, bool tracking) {
@@ -138,31 +152,47 @@ class TrackingService {
   }
 
   Future<void> _updateLocation(String uid, Position position) async {
+    final currentPoint = GeoPoint(position.latitude, position.longitude);
+    
+    // 1. Intentar actualizar en la nube (Requiere internet)
     try {
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'location': GeoPoint(position.latitude, position.longitude),
+        'location': currentPoint,
         'lastLocationUpdate': FieldValue.serverTimestamp(),
-      });
-
-      bool isOutside = await _geofenceService.isPointOutsideAllGeofences(
-        uid,
-        GeoPoint(position.latitude, position.longitude),
-      );
-
-      if (isOutside) {
-        if (_lastGeofenceAlertTime == null ||
-            DateTime.now().difference(_lastGeofenceAlertTime!) >
-                const Duration(minutes: 30)) {
-          _lastGeofenceAlertTime = DateTime.now();
-          await _alertService.enviarAlerta(
-            tipo: "zona_segura",
-            mensaje:
-                "Alerta Automática: El paciente ha salido de la zona segura.",
-          );
-        }
-      }
+      }).timeout(const Duration(seconds: 5));
     } catch (e) {
-      log("Error al verificar geocercas/ubicacion: $e");
+      log("Offline: No se pudo subir ubicación a la nube, continuando monitoreo local.");
+    }
+
+    // 2. Verificación de Geocerca (LOCAL / OFFLINE)
+    // Primero intentamos con el cache local (rápido y funciona sin internet)
+    bool isOutside = false;
+    
+    if (_localGeofences.isNotEmpty) {
+      // Uso de IA Local / Lógica local para verificar zona segura
+      isOutside = _localGeofences.every((g) => !g.isPointInside(currentPoint));
+    } else {
+      // Fallback a consulta Firestore si el cache está vacío
+      try {
+        isOutside = await _geofenceService.isPointOutsideAllGeofences(uid, currentPoint);
+      } catch (e) {
+        log("Error en verificación offline de geocerca: $e");
+      }
+    }
+
+    if (isOutside) {
+      if (_lastGeofenceAlertTime == null ||
+          DateTime.now().difference(_lastGeofenceAlertTime!) >
+              const Duration(minutes: 30)) {
+        _lastGeofenceAlertTime = DateTime.now();
+        
+        // La alerta se intenta enviar a la nube, si no hay internet se queda en la cola de Firestore (si está habilitado offline)
+        // o fallará, pero al menos la app "sabe" que está fuera.
+        await _alertService.enviarAlerta(
+          tipo: "zona_segura",
+          mensaje: "Alerta Local: El paciente ha salido de la zona segura.",
+        );
+      }
     }
   }
 

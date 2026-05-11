@@ -132,6 +132,10 @@ class AlertasCuidador extends StatelessWidget {
                   icon = Icons.warning;
                   color = Colors.red;
                   break;
+                case 'cita':
+                  icon = Icons.calendar_month;
+                  color = Colors.teal;
+                  break;
                 default:
                   icon = Icons.notifications;
                   color = Colors.grey;

@@ -7,6 +7,7 @@ import 'home_paciente.dart';
 import 'medicamentos.dart';
 import 'cuidadores_of_pacientes.dart';
 import 'perfil_paciente.dart';
+import 'citas_medicas.dart';
 
 class PacienteMainScreen extends StatefulWidget {
   const PacienteMainScreen({super.key});
@@ -46,6 +47,7 @@ class _PacienteMainScreenState extends State<PacienteMainScreen> {
   final List<Widget> _screens = [
     const HomePaciente(),
     const Medicamentos(),
+    const CitasMedicas(),
     const CuidadoresDePaciente(),
     const PerfilPaciente(),
   ];
@@ -73,7 +75,11 @@ class _PacienteMainScreenState extends State<PacienteMainScreen> {
             label: 'Medicamentos',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.medical_services),
+            icon: Icon(Icons.calendar_month),
+            label: 'Citas',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people),
             label: 'Cuidadores',
           ),
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),

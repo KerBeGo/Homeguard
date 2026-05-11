@@ -10,8 +10,8 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await NotificationService().initialize();
-  await LocalNotificationService().init();
+  NotificationService().initialize();
+  LocalNotificationService().init();
 
   runApp(const MyApp());
 }

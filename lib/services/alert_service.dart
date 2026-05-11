@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/alerts_model.dart';
+import 'local_notification_service.dart';
 
 class AlertService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -38,5 +39,11 @@ class AlertService {
     );
 
     await _firestore.collection('alertas').add(nuevaAlerta.toMap());
+
+    // Feedback local para el paciente (Funciona offline)
+    await LocalNotificationService().sendInstantNotification(
+      'Alerta Detectada: ${tipo.toUpperCase()}',
+      mensaje,
+    );
   }
 }
