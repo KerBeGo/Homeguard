@@ -401,6 +401,10 @@ class _HomeCuidadorState extends State<HomeCuidador> {
                 icon = Icons.warning;
                 color = Colors.red;
                 break;
+              case 'cita':
+                icon = Icons.calendar_month;
+                color = Colors.teal;
+                break;
             }
 
             return Container(

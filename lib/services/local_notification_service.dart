@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
@@ -146,6 +147,25 @@ class LocalNotificationService {
     );
   }
 
+  Future<void> sendInstantNotification(String title, String body) async {
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+        AndroidNotificationDetails(
+          'instant_channel_id',
+          'Instant Notifications',
+          importance: Importance.max,
+          priority: Priority.high,
+        );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(
+      android: androidPlatformChannelSpecifics,
+    );
+    await flutterLocalNotificationsPlugin.show(
+      id: Random().nextInt(1000),
+      title: title,
+      body: body,
+      notificationDetails: platformChannelSpecifics,
+    );
+  }
+
   tz.TZDateTime _nextInstanceOfTime(int hour, int minute) {
     // Obtenemos la hora local real *directamente* del sistema Android para evitar desfases de la librería
     final DateTime now = DateTime.now();
@@ -165,5 +185,44 @@ class LocalNotificationService {
     // Convertimos ese momento exacto a la zona horaria de la librería.
     // Como DateTime.now() nunca miente, el ScheduledDate siempre cuadrará con el reloj del usuario.
     return tz.TZDateTime.from(scheduledDate, tz.local);
+  }
+
+  Future<void> scheduleAppointmentNotification({
+    required int id,
+    required String doctor,
+    required String especialidad,
+    required DateTime scheduledDate,
+  }) async {
+    try {
+      // Notificar 1 hora antes (opcional, podrías hacerlo configurable)
+      final notificationTime = scheduledDate.subtract(const Duration(hours: 1));
+      
+      if (notificationTime.isBefore(DateTime.now())) {
+        // Si ya pasó la hora de notificación (1h antes), pero no la cita, 
+        // podrías notificar ahora o simplemente no programar.
+        return;
+      }
+
+      await flutterLocalNotificationsPlugin.zonedSchedule(
+        id: id,
+        title: 'Cita Médica Próxima',
+        body: 'Tienes una cita con el Dr. $doctor ($especialidad) en 1 hora.',
+        scheduledDate: tz.TZDateTime.from(notificationTime, tz.local),
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'appointment_channel_id',
+            'Medical Appointments',
+            channelDescription: 'Recordatorios de citas médicas',
+            importance: Importance.max,
+            priority: Priority.high,
+          ),
+          iOS: DarwinNotificationDetails(),
+        ),
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+      debugPrint("APPOINTMENT SCHEDULED: $doctor at $scheduledDate");
+    } catch (e) {
+      debugPrint("ERROR SCHEDULING APPOINTMENT: $e");
+    }
   }
 }

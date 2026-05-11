@@ -66,6 +66,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    packaging {
+        jniLibs {
+            keepDebugSymbols.add("**/*.so")
+        }
+    }
 }
 
 flutter {
@@ -113,3 +119,8 @@ tasks.matching { it.name.startsWith("process") && it.name.endsWith("GoogleServic
     dependsOn("generateGoogleServices")
 }
 
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}

@@ -16,9 +16,7 @@ void main() async {
   print('  DEBUG: FIREBASE_API_KEY_ANDROID value: "$apiKey"');
 
   await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform.copyWith(
-      apiKey: apiKey,
-    ),
+    options: DefaultFirebaseOptions.currentPlatform.copyWith(apiKey: apiKey),
   );
   await NotificationService().initialize();
   await LocalNotificationService().init();

@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:homeguard/screens/cuidador/medication_control.dart';
 import 'ubicacion_mapa.dart';
 import 'historial_alertas_paciente.dart';
+import 'citas_paciente.dart';
 
 class PatientDetailScreen extends StatelessWidget {
   final String patientId;
@@ -17,7 +18,7 @@ class PatientDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           title: Column(
@@ -66,6 +67,7 @@ class PatientDetailScreen extends StatelessWidget {
               Tab(icon: Icon(Icons.map), text: "Mapa"),
               Tab(icon: Icon(Icons.warning), text: "Alertas"),
               Tab(icon: Icon(Icons.medication), text: "Medicinas"),
+              Tab(icon: Icon(Icons.calendar_month), text: "Citas"),
             ],
           ),
         ),
@@ -78,8 +80,11 @@ class PatientDetailScreen extends StatelessWidget {
             // Tab 2: Alertas
             HistorialAlertasPaciente(patientId: patientId),
 
-            // Tab 3: Medicinas (Placeholder)
+            // Tab 3: Medicinas
             MedicationControlScreen(patientId: patientId),
+
+            // Tab 4: Citas
+            CitasPaciente(patientId: patientId, patientName: patientName),
           ],
         ),
       ),
