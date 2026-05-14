@@ -66,6 +66,13 @@ class PerfilPaciente extends StatelessWidget {
                   ),
                 ),
                 Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.phone),
+                    title: const Text('Teléfono'),
+                    subtitle: Text(data['telefono'] ?? 'No configurado'),
+                  ),
+                ),
+                Card(
                   elevation: 4,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15),
@@ -128,10 +135,10 @@ class PerfilPaciente extends StatelessWidget {
                 const SizedBox(height: 30),
                 ElevatedButton.icon(
                   onPressed: () {
-                    // Aquí podrías agregar la funcionalidad de editar perfil
+                    _mostrarDialogoEditarTelefono(context, data['telefono'] ?? '');
                   },
                   icon: const Icon(Icons.edit),
-                  label: const Text('Editar Perfil'),
+                  label: const Text('Editar Teléfono'),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 30,
@@ -155,6 +162,39 @@ class PerfilPaciente extends StatelessWidget {
             ),
           );
         },
+      ),
+    );
+  }
+
+  void _mostrarDialogoEditarTelefono(BuildContext context, String currentPhone) {
+    final controller = TextEditingController(text: currentPhone);
+    final user = FirebaseAuth.instance.currentUser!;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Editar Teléfono"),
+        content: TextField(
+          controller: controller,
+          keyboardType: TextInputType.phone,
+          decoration: const InputDecoration(labelText: "Nuevo número"),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancelar"),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .update({'telefono': controller.text.trim()});
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: const Text("Guardar"),
+          ),
+        ],
       ),
     );
   }

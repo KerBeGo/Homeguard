@@ -5,6 +5,8 @@ import 'ubicacion_mapa.dart';
 import 'historial_alertas_paciente.dart';
 import 'citas_paciente.dart';
 import 'dashboard_paciente.dart';
+import '../../services/connection_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PatientDetailScreen extends StatelessWidget {
   final String patientId;
@@ -22,6 +24,13 @@ class PatientDetailScreen extends StatelessWidget {
       length: 5,
       child: Scaffold(
         appBar: AppBar(
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.person_remove, color: Colors.white),
+              tooltip: "Desvincular Paciente",
+              onPressed: () => _confirmarDesvinculacion(context),
+            ),
+          ],
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -106,6 +115,34 @@ class PatientDetailScreen extends StatelessWidget {
             CitasPaciente(patientId: patientId, patientName: patientName),
           ],
         ),
+      ),
+    );
+  }
+
+  void _confirmarDesvinculacion(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("¿Desvincular Paciente?"),
+        content: Text("¿Estás seguro de que quieres desvincular a $patientName? Dejarás de recibir sus alertas."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancelar"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              final currentUserId = FirebaseAuth.instance.currentUser!.uid;
+              await ConnectionService().desvincularPaciente(patientId, currentUserId);
+              if (context.mounted) {
+                Navigator.pop(context); // Cerrar dialog
+                Navigator.pop(context); // Volver a la lista de pacientes
+              }
+            },
+            child: const Text("Desvincular", style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

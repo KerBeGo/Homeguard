@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../../services/connection_service.dart';
 
 class CuidadoresDePaciente extends StatelessWidget {
   const CuidadoresDePaciente({super.key});
@@ -123,6 +124,17 @@ class CuidadoresDePaciente extends StatelessWidget {
                             title: const Text('Tipo'),
                             subtitle: Text(cuidadorData['tipo'] ?? 'Cuidador'),
                           ),
+                          const SizedBox(height: 10),
+                          ElevatedButton.icon(
+                            onPressed: () => _confirmarDesvinculacion(context, user.uid, cuidadorId),
+                            icon: const Icon(Icons.person_remove),
+                            label: const Text("Desvincular Cuidador"),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red,
+                              foregroundColor: Colors.white,
+                              minimumSize: const Size(double.infinity, 50),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -132,6 +144,32 @@ class CuidadoresDePaciente extends StatelessWidget {
             },
           );
         },
+      ),
+    );
+  }
+
+  void _confirmarDesvinculacion(BuildContext context, String pacienteId, String cuidadorId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("¿Desvincular Cuidador?"),
+        content: const Text("¿Estás seguro de que quieres desvincular a tu cuidador? Ya no podrá monitorear tu estado."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Cancelar"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              await ConnectionService().desvincularPaciente(pacienteId, cuidadorId);
+              if (context.mounted) {
+                Navigator.pop(context); // Cerrar dialog
+              }
+            },
+            child: const Text("Desvincular", style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }

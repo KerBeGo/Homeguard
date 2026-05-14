@@ -12,6 +12,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _emailController = TextEditingController();
   final _passController = TextEditingController();
   final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
 
   String _rolSeleccionado = 'PACIENTE';
   final AuthService _authService = AuthService();
@@ -44,6 +45,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passController.text.trim(),
         nombre: _nameController.text.trim(),
         rol: _rolSeleccionado,
+        telefono: _phoneController.text.trim(),
       );
     } else {
       // MODO LOGIN
@@ -90,6 +92,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   decoration: const InputDecoration(
                     labelText: "Nombre Completo",
                     prefixIcon: Icon(Icons.person),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: _phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: "Teléfono (para alertas SMS)",
+                    prefixIcon: Icon(Icons.phone),
                   ),
                 ),
                 const SizedBox(height: 10),
