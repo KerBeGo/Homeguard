@@ -316,7 +316,7 @@ class _HomeCuidadorState extends State<HomeCuidador> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          "Código: ${pacienteData['codigoVinculacion'] ?? '-'}",
+                          pacienteData['address'] ?? "Ubicación desconocida",
                           style: const TextStyle(
                             fontSize: 11,
                             color: Colors.grey,

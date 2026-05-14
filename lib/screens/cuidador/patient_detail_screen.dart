@@ -4,6 +4,7 @@ import 'package:homeguard/screens/cuidador/medication_control.dart';
 import 'ubicacion_mapa.dart';
 import 'historial_alertas_paciente.dart';
 import 'citas_paciente.dart';
+import 'dashboard_paciente.dart';
 
 class PatientDetailScreen extends StatelessWidget {
   final String patientId;
@@ -18,7 +19,7 @@ class PatientDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 4,
+      length: 5,
       child: Scaffold(
         appBar: AppBar(
           title: Column(
@@ -55,6 +56,20 @@ class PatientDetailScreen extends StatelessWidget {
                           color: Colors.white70,
                         ),
                       ),
+                      const SizedBox(width: 12),
+                      const Icon(Icons.location_on, size: 14, color: Colors.white70),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          data['address'] ?? 'Dirección desconocida',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   );
                 },
@@ -64,6 +79,7 @@ class PatientDetailScreen extends StatelessWidget {
           backgroundColor: Colors.teal,
           bottom: const TabBar(
             tabs: [
+              Tab(icon: Icon(Icons.analytics), text: "Panel"),
               Tab(icon: Icon(Icons.map), text: "Mapa"),
               Tab(icon: Icon(Icons.warning), text: "Alertas"),
               Tab(icon: Icon(Icons.medication), text: "Medicinas"),
@@ -74,16 +90,19 @@ class PatientDetailScreen extends StatelessWidget {
         body: TabBarView(
           physics: const NeverScrollableScrollPhysics(), // Deshabilitar swipe
           children: [
-            // Tab 1: Mapa (le pasamos el ID para que escuche la ubicación)
+            // Tab 1: Dashboard / Panel
+            DashboardPaciente(patientId: patientId, patientName: patientName),
+
+            // Tab 2: Mapa (le pasamos el ID para que escuche la ubicación)
             MapaScreen(patientId: patientId),
 
-            // Tab 2: Alertas
+            // Tab 3: Alertas
             HistorialAlertasPaciente(patientId: patientId),
 
-            // Tab 3: Medicinas
+            // Tab 4: Medicinas
             MedicationControlScreen(patientId: patientId),
 
-            // Tab 4: Citas
+            // Tab 5: Citas
             CitasPaciente(patientId: patientId, patientName: patientName),
           ],
         ),

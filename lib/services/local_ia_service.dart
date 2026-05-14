@@ -1,85 +1,167 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 
-/// Servicio de Inteligencia Artificial Local (On-device AI)
-/// No requiere conexión a internet para funcionar.
+enum FallState { searching, freeFallDetected, impactDetected, confirmed }
+
 class LocalAIService {
   static final LocalAIService _instance = LocalAIService._internal();
   factory LocalAIService() => _instance;
   LocalAIService._internal();
 
-  // Buffer para almacenar muestras recientes (Ventana de tiempo)
-  final List<double> _magnitudeBuffer = [];
-  static const int _bufferLimit = 50; // Aprox 1-2 segundos de datos
+  // Estados de la IA
+  FallState _currentState = FallState.searching;
+  DateTime? _stateStartTime;
+  
+  // Memoria de sonido reciente
+  bool _loudNoiseDetectedRecently = false;
+  DateTime? _lastLoudNoiseTime;
+  DateTime? _lastEmergencySoundTime;
 
-  /// Analiza si un evento de sensores corresponde a una caída real.
-  /// Implementa un algoritmo de reconocimiento de patrones basado en heurísticas de IA.
+  // Umbrales calibrados para robustez avanzada (Enfocado en Personas Mayores)
+  static const double _freeFallThreshold = 5.0;    // Más sensible para caídas lentas
+  static const double _impactThreshold = 16.0;    // Reducido para captar caídas menos violentas
+  static const double _moderateImpactThreshold = 14.0; // Umbral para fusión con sonido
+  static const double _criticalImpactThreshold = 22.0; // Bajado para asegurar alertas en golpes secos
+  static const double _quietThresholdLow = 7.5;    
+  static const double _quietThresholdHigh = 12.5;  
+  static const double _loudNoiseThreshold = 50.0; // Más sensible para detectar el golpe contra el suelo
+  static const double _emergencySoundThreshold = 65.0; // Captura gritos más débiles
+  static const double _shakeThreshold = 28.0; // Más fácil de activar para emergencias manuales
+
+  // Tiempos
+  static const int _maxFreeFallToImpactMs = 1200; // Más tiempo para caídas complejas
+  static const int _minQuietDurationMs = 2000;     // 2 segundos de quietud para confirmar (más seguro)
+
+  /// Actualiza el nivel de sonido y verifica si es una emergencia (grito/accidente)
+  bool updateAudioLevel(double db) {
+    bool isEmergency = false;
+
+    if (db > _loudNoiseThreshold) {
+      _loudNoiseDetectedRecently = true;
+      _lastLoudNoiseTime = DateTime.now();
+      
+      // Si es extremadamente fuerte (Grito), activamos alerta inmediata
+      if (db > _emergencySoundThreshold) {
+        // Cooldown de 10 segundos para no saturar con el mismo grito
+        if (_lastEmergencySoundTime == null || 
+            DateTime.now().difference(_lastEmergencySoundTime!).inSeconds > 10) {
+          isEmergency = true;
+          _lastEmergencySoundTime = DateTime.now();
+          debugPrint("IA MULTIMODAL: ¡SONIDO DE EMERGENCIA DETECTADO! (dB: ${db.toStringAsFixed(1)})");
+        }
+      }
+    }
+    
+    // Limpiar ruidos viejos tras 2 segundos para la fusión con caídas
+    if (_lastLoudNoiseTime != null && 
+        DateTime.now().difference(_lastLoudNoiseTime!).inSeconds > 2) {
+      _loudNoiseDetectedRecently = false;
+    }
+
+    return isEmergency;
+  }
+
+  /// Analiza el movimiento usando Fusión de Sensores (Movimiento + Sonido)
   bool detectFall(double x, double y, double z) {
     double magnitude = sqrt(x * x + y * y + z * z);
-    
-    // Añadir al buffer
-    _magnitudeBuffer.add(magnitude);
-    if (_magnitudeBuffer.length > _bufferLimit) {
-      _magnitudeBuffer.removeAt(0);
+    DateTime now = DateTime.now();
+
+    // 1. Detección de impacto crítico directo (sin caída libre previa)
+    if (magnitude > _criticalImpactThreshold && _currentState == FallState.searching) {
+      _currentState = FallState.impactDetected;
+      _stateStartTime = now;
+      debugPrint("IA AVANZADA: ¡IMPACTO CRÍTICO DIRECTO! (G=${magnitude.toStringAsFixed(1)})");
     }
 
-    if (_magnitudeBuffer.length < 20) return false;
+    // 2. FUSIÓN DE SENSORES: Impacto moderado + Sonido reciente
+    // Si hubo un ruido fuerte (golpe) y un movimiento brusco, es muy probable que sea una caída
+    if (magnitude > _moderateImpactThreshold && _loudNoiseDetectedRecently && _currentState == FallState.searching) {
+      _currentState = FallState.impactDetected;
+      _stateStartTime = now;
+      debugPrint("IA AVANZADA: ¡FUSIÓN IMPACTO+SONIDO! (G=${magnitude.toStringAsFixed(1)})");
+    }
 
-    // Patrón de caída típico:
-    // 1. Caída libre (magnitud < 3 m/s2)
-    // 2. Seguido de Impacto (magnitud > 25 m/s2)
-    // 3. Seguido de Inactividad (varianza baja)
-
-    bool freeFallFound = false;
-    bool impactFound = false;
-    int impactIndex = -1;
-
-    for (int i = 0; i < _magnitudeBuffer.length; i++) {
-      if (_magnitudeBuffer[i] < 3.0) {
-        freeFallFound = true;
-      }
-      if (freeFallFound && _magnitudeBuffer[i] > 25.0) {
-        impactFound = true;
-        impactIndex = i;
+    switch (_currentState) {
+      case FallState.searching:
+        if (magnitude < _freeFallThreshold) {
+          _currentState = FallState.freeFallDetected;
+          _stateStartTime = now;
+          debugPrint("IA AVANZADA: Fase 1 - Caída iniciada (G=${magnitude.toStringAsFixed(1)})");
+        }
         break;
-      }
-    }
 
-    if (impactFound && impactIndex != -1 && impactIndex < _magnitudeBuffer.length - 10) {
-      // Verificar "Inactividad" tras el impacto (para no confundir con correr o saltar)
-      double variance = _calculateVariance(_magnitudeBuffer.sublist(impactIndex));
-      if (variance < 10.0) {
-        debugPrint("IA LOCAL: ¡CAÍDA CONFIRMADA POR PATRÓN!");
-        return true;
-      }
+      case FallState.freeFallDetected:
+        if (now.difference(_stateStartTime!).inMilliseconds > _maxFreeFallToImpactMs) {
+          debugPrint("IA MULTIMODAL: Timeout en caída libre (G=${magnitude.toStringAsFixed(1)}), volviendo a buscar...");
+          _currentState = FallState.searching;
+          return false;
+        }
+        if (magnitude > _impactThreshold) {
+          _currentState = FallState.impactDetected;
+          _stateStartTime = now;
+          debugPrint("IA MULTIMODAL: Fase 2 - ¡GOLPE DETECTADO! (G=${magnitude.toStringAsFixed(1)})");
+        }
+        break;
+
+      case FallState.impactDetected:
+        bool isQuiet = magnitude > _quietThresholdLow && magnitude < _quietThresholdHigh;
+        
+        if (!isQuiet) {
+          // Si hay otro golpe muy fuerte o cae de nuevo, reiniciamos el contador de quietud
+          if (magnitude > _impactThreshold || magnitude < _freeFallThreshold) {
+             debugPrint("IA MULTIMODAL: Movimiento detectado post-impacto, reiniciando fase de quietud.");
+             _stateStartTime = now; 
+          }
+          
+          // Si el movimiento es constante y NO es quietud por mucho tiempo, cancelar
+          if (now.difference(_stateStartTime!).inSeconds > 4) {
+            debugPrint("IA MULTIMODAL: Demasiado movimiento post-impacto, cancelando alerta de caída.");
+            _currentState = FallState.searching;
+          }
+        } else {
+          if (now.difference(_stateStartTime!).inMilliseconds > _minQuietDurationMs) {
+            _currentState = FallState.searching;
+            
+            if (_loudNoiseDetectedRecently) {
+              debugPrint("IA MULTIMODAL: ¡CAÍDA CONFIRMADA CON SONIDO! (G=${magnitude.toStringAsFixed(1)})");
+            } else {
+              debugPrint("IA MULTIMODAL: ¡CAÍDA CONFIRMADA POR MOVIMIENTO! (G=${magnitude.toStringAsFixed(1)})");
+            }
+            return true;
+          }
+        }
+        break;
+
+      default:
+        _currentState = FallState.searching;
     }
 
     return false;
   }
 
+  /// Detecta si el teléfono está siendo agitado violentamente
+  bool detectShaking(double x, double y, double z) {
+    double magnitude = sqrt(x * x + y * y + z * z);
+    if (magnitude > _shakeThreshold) {
+      debugPrint("IA MULTIMODAL: ¡AGITACIÓN DETECTADA! (G=${magnitude.toStringAsFixed(1)})");
+      return true;
+    }
+    return false;
+  }
+
   /// Verifica si el paciente está en una "Zona Segura" localmente
-  /// No requiere internet.
   bool isInsideSafeZoneLocal(double currentLat, double currentLon, double safeLat, double safeLon, double radius) {
     double distance = _haversineDistance(currentLat, currentLon, safeLat, safeLon);
     return distance <= radius;
   }
 
-  double _calculateVariance(List<double> data) {
-    if (data.isEmpty) return 0;
-    double mean = data.reduce((a, b) => a + b) / data.length;
-    double sumSquaredDiff = data.map((x) => pow(x - mean, 2)).fold(0.0, (a, b) => a + b);
-    return sumSquaredDiff / data.length;
-  }
-
   double _haversineDistance(double lat1, double lon1, double lat2, double lon2) {
     const double earthRadius = 6371000;
-    double dLat = _toRadians(lat2 - lat1);
-    double dLon = _toRadians(lon2 - lon1);
+    double dLat = (lat2 - lat1) * pi / 180;
+    double dLon = (lon2 - lon1) * pi / 180;
     double a = sin(dLat / 2) * sin(dLat / 2) +
-        cos(_toRadians(lat1)) * cos(_toRadians(lat2)) * sin(dLon / 2) * sin(dLon / 2);
+        cos(lat1 * pi / 180) * cos(lat2 * pi / 180) * sin(dLon / 2) * sin(dLon / 2);
     double c = 2 * atan2(sqrt(a), sqrt(1 - a));
     return earthRadius * c;
   }
-
-  double _toRadians(double degrees) => degrees * pi / 180;
 }

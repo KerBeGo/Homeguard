@@ -25,12 +25,25 @@ android {
 
     defaultConfig {
         // ...
+        // Leer llaves desde local.properties y también desde .env
         val localPropertiesFile = rootProject.file("local.properties")
         val localProperties = Properties()
         if (localPropertiesFile.exists()) {
             localProperties.load(localPropertiesFile.inputStream())
         }
-        val mapsApiKey = localProperties.getProperty("maps.api.key") ?: ""
+
+        // Leer desde .env en la raíz del proyecto
+        val envFile = rootProject.file("../.env")
+        val envProperties = Properties()
+        if (envFile.exists()) {
+            envFile.inputStream().use { envProperties.load(it) }
+        }
+
+        // Prioridad: .env -> local.properties
+        val mapsApiKey = envProperties.getProperty("MAPS_API_KEY") 
+                        ?: localProperties.getProperty("maps.api.key") 
+                        ?: ""
+        
         manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
         
         applicationId = "com.example.homeguard"

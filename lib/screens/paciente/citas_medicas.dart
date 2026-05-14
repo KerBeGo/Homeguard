@@ -105,26 +105,37 @@ class _CitasMedicasState extends State<CitasMedicas> {
                   notas: notasController.text,
                 );
 
-                // Guardar en Firestore
-                final docRef = await FirebaseFirestore.instance
-                    .collection('citas')
-                    .add(appointment.toMap());
+                try {
+                  // Guardar en Firestore
+                  final docRef = await FirebaseFirestore.instance
+                      .collection('citas')
+                      .add(appointment.toMap());
 
-                // Programar notificación local
-                await LocalNotificationService().scheduleAppointmentNotification(
-                  id: docRef.id.hashCode,
-                  doctor: appointment.doctor,
-                  especialidad: appointment.especialidad,
-                  scheduledDate: appointmentDateTime,
-                );
+                  // Programar notificación local
+                  await LocalNotificationService().scheduleAppointmentNotification(
+                    id: docRef.id.hashCode,
+                    doctor: appointment.doctor,
+                    especialidad: appointment.especialidad,
+                    scheduledDate: appointmentDateTime,
+                  );
 
-                // Notificar al cuidador
-                await AlertService().enviarAlerta(
-                  tipo: 'cita',
-                  mensaje: 'Nueva cita: ${appointment.especialidad} con ${appointment.doctor}',
-                );
+                  // Notificar al cuidador
+                  await AlertService().enviarAlerta(
+                    tipo: 'cita',
+                    mensaje: 'Nueva cita: ${appointment.especialidad} con ${appointment.doctor}',
+                  );
 
-                if (context.mounted) Navigator.pop(context);
+                  if (context.mounted) Navigator.pop(context);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Error al guardar cita: $e"),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
               },
               child: const Text("Guardar"),
             ),

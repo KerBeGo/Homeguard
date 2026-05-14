@@ -16,7 +16,7 @@ class MapaScreen extends StatefulWidget {
 }
 
 class _MapaScreenState extends State<MapaScreen> {
-  late GoogleMapController mapController;
+  GoogleMapController? _mapController;
   final LatLng _defaultCenter = const LatLng(10.496, -66.898);
   final GeofenceService _geofenceService = GeofenceService();
 
@@ -24,7 +24,7 @@ class _MapaScreenState extends State<MapaScreen> {
   Set<Circle> _circles = {};
 
   void _onMapCreated(GoogleMapController controller) {
-    mapController = controller;
+    _mapController = controller;
   }
 
   /// Muestra el diálogo para crear una nueva geocerca
@@ -111,6 +111,12 @@ class _MapaScreenState extends State<MapaScreen> {
           .doc(widget.patientId)
           .snapshots(),
       builder: (context, patientSnapshot) {
+        if (patientSnapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+
         GeoPoint? patientLocation;
 
         // Obtener la ubicación del paciente
@@ -120,21 +126,41 @@ class _MapaScreenState extends State<MapaScreen> {
             patientLocation = data['location'] as GeoPoint?;
 
             if (patientLocation != null) {
+              final LatLng patientLatLng = LatLng(
+                patientLocation.latitude,
+                patientLocation.longitude,
+              );
+
               _markers = {
                 Marker(
                   markerId: MarkerId(widget.patientId),
-                  position: LatLng(
-                    patientLocation.latitude,
-                    patientLocation.longitude,
-                  ),
+                  position: patientLatLng,
                   infoWindow: const InfoWindow(title: 'Paciente'),
                   icon: BitmapDescriptor.defaultMarkerWithHue(
                     BitmapDescriptor.hueRed,
                   ),
                 ),
               };
+
+              // Si el mapa ya está listo, centramos la cámara en el paciente
+              if (mounted && _mapController != null) {
+                _mapController!.animateCamera(
+                  CameraUpdate.newLatLng(patientLatLng),
+                );
+              }
             }
           }
+        }
+
+        if (patientLocation == null) {
+          return const Scaffold(
+            body: Center(
+              child: Text(
+                "Aún no hay datos de ubicación de este paciente.\nEl monitoreo debe estar activo en su dispositivo.",
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
         }
 
         // StreamBuilder para las geocercas activas

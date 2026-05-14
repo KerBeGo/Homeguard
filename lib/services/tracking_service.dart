@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:battery_plus/battery_plus.dart';
+import 'package:geocoding/geocoding.dart';
 import '../models/geofence_model.dart';
 import 'alert_service.dart';
 import 'geofence_service.dart';
@@ -83,12 +84,12 @@ class TrackingService {
     late LocationSettings locationSettings;
     if (defaultTargetPlatform == TargetPlatform.android) {
       locationSettings = AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-        forceLocationManager: true,
-        intervalDuration: const Duration(seconds: 10),
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 0, // Notificar cualquier pequeño cambio
+        forceLocationManager: false, // Usar Google Play Services para mejor precisión
+        intervalDuration: const Duration(seconds: 5),
         foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationText: "Monitoreando ubicación en segundo plano.",
+          notificationText: "Monitoreando ubicación con alta precisión.",
           notificationTitle: "Homeguard Activado",
           enableWakeLock: true,
         ),
@@ -96,9 +97,9 @@ class TrackingService {
     } else if (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
       locationSettings = AppleSettings(
-        accuracy: LocationAccuracy.high,
+        accuracy: LocationAccuracy.bestForNavigation,
         activityType: ActivityType.fitness,
-        distanceFilter: 10,
+        distanceFilter: 0,
         pauseLocationUpdatesAutomatically: true,
         showBackgroundLocationIndicator: true,
       );
@@ -154,10 +155,48 @@ class TrackingService {
   Future<void> _updateLocation(String uid, Position position) async {
     final currentPoint = GeoPoint(position.latitude, position.longitude);
     
+    // 0. Resolver dirección (Geocodificación inversa)
+    String address = "Cargando dirección...";
+    try {
+      List<Placemark> placemarks = await placemarkFromCoordinates(
+        position.latitude,
+        position.longitude,
+      );
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        List<String> parts = [];
+        
+        // Priorizamos la Calle y el Número (Dirección Postal)
+        String? calle = place.thoroughfare;
+        String? numero = place.subThoroughfare;
+        String? sector = place.subLocality;
+        String? ciudad = place.locality;
+
+        if (calle != null && calle.isNotEmpty) {
+          if (numero != null && numero.isNotEmpty && numero != calle) {
+            parts.add("$calle $numero");
+          } else {
+            parts.add(calle);
+          }
+        } else if (place.name != null && place.name!.isNotEmpty) {
+          // Si no hay calle, usamos el nombre como último recurso
+          parts.add(place.name!);
+        }
+
+        if (sector != null && sector.isNotEmpty) parts.add(sector);
+        if (ciudad != null && ciudad.isNotEmpty) parts.add(ciudad);
+        
+        address = parts.join(", ");
+      }
+    } catch (e) {
+      address = "Dirección no disponible";
+    }
+
     // 1. Intentar actualizar en la nube (Requiere internet)
     try {
       await FirebaseFirestore.instance.collection('users').doc(uid).update({
         'location': currentPoint,
+        'address': address,
         'lastLocationUpdate': FieldValue.serverTimestamp(),
       }).timeout(const Duration(seconds: 5));
     } catch (e) {

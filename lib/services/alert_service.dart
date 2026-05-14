@@ -14,7 +14,13 @@ class AlertService {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // Obtener datos del paciente para la alerta
+    // Feedback local inmediato (Funciona aunque no haya internet)
+    await LocalNotificationService().sendInstantNotification(
+      'ALERTA DETECTADA: ${tipo.toUpperCase()}',
+      mensaje,
+    );
+
+    // Luego intentar sincronizar con la nube...
     final doc = await _firestore.collection('users').doc(user.uid).get();
     if (!doc.exists) return;
 

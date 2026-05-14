@@ -23,13 +23,24 @@ class Appointment {
 
   factory Appointment.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+    
+    // Manejo robusto de la fecha (puede venir como Timestamp o DateTime durante la sincronización)
+    DateTime fechaCita;
+    if (data['fecha'] is Timestamp) {
+      fechaCita = (data['fecha'] as Timestamp).toDate();
+    } else if (data['fecha'] is DateTime) {
+      fechaCita = data['fecha'] as DateTime;
+    } else {
+      fechaCita = DateTime.now(); // Fallback
+    }
+
     return Appointment(
       id: doc.id,
       pacienteId: data['pacienteId'] ?? '',
       pacienteNombre: data['pacienteNombre'] ?? '',
       doctor: data['doctor'] ?? '',
       especialidad: data['especialidad'] ?? '',
-      fecha: (data['fecha'] as Timestamp).toDate(),
+      fecha: fechaCita,
       notas: data['notas'] ?? '',
       notificado: data['notificado'] ?? false,
     );
