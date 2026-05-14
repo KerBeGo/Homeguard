@@ -24,9 +24,9 @@ class LocalAIService {
   static const double _criticalImpactThreshold = 22.0; // Bajado para asegurar alertas en golpes secos
   static const double _quietThresholdLow = 7.5;    
   static const double _quietThresholdHigh = 12.5;  
-  static const double _loudNoiseThreshold = 50.0; // Más sensible para detectar el golpe contra el suelo
-  static const double _emergencySoundThreshold = 65.0; // Captura gritos más débiles
-  static const double _shakeThreshold = 28.0; // Más fácil de activar para emergencias manuales
+  static const double _loudNoiseThreshold = 70.0; // Ignora ruido ambiental y conversaciones normales
+  static const double _emergencySoundThreshold = 85.0; // Solo captura gritos fuertes o impactos secos
+  static const double _shakeThreshold = 40.0; // Requiere una agitación más deliberada para evitar falsas alarmas
 
   // Tiempos
   static const int _maxFreeFallToImpactMs = 1200; // Más tiempo para caídas complejas

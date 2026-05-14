@@ -34,7 +34,7 @@ class SensorService {
 
     debugPrint("SENSOR MOVIMIENTO: Intentando conectar con el acelerómetro...");
     debugPrint("SENSOR MOVIMIENTO: Solicitando acceso a accelerometerEvents...");
-    _accelerometerSubscription = accelerometerEventStream().listen((AccelerometerEvent event) {
+    _accelerometerSubscription = accelerometerEventStream(samplingPeriod: SensorInterval.uiInterval).listen((AccelerometerEvent event) {
       _analyzeMovement(event);
     }, onError: (e) {
       debugPrint("ERROR CRÍTICO EN ACELERÓMETRO: $e");
@@ -49,7 +49,7 @@ class SensorService {
 
   void _startActivityLogging() {
     _activityTimer?.cancel();
-    _activityTimer = Timer.periodic(const Duration(minutes: 5), (timer) {
+    _activityTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
       _sendActivitySnapshot();
     });
   }
@@ -77,7 +77,7 @@ class SensorService {
         'noiseIndex': avgDb,
         'timestamp': FieldValue.serverTimestamp(),
       });
-      debugPrint("IA DASHBOARD: Snapshot de actividad enviado con éxito.");
+      debugPrint("IA DASHBOARD: Snapshot enviado. G=${avgMagnitude.toStringAsFixed(2)}, dB=${avgDb.toStringAsFixed(1)}");
     } catch (e) {
       debugPrint("IA DASHBOARD ERROR: $e");
     }

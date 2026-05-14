@@ -84,10 +84,10 @@ class TrackingService {
     late LocationSettings locationSettings;
     if (defaultTargetPlatform == TargetPlatform.android) {
       locationSettings = AndroidSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
-        distanceFilter: 0, // Notificar cualquier pequeño cambio
-        forceLocationManager: false, // Usar Google Play Services para mejor precisión
-        intervalDuration: const Duration(seconds: 5),
+        accuracy: LocationAccuracy.high, // Cambiado de bestForNavigation para ahorrar energía
+        distanceFilter: 15, // Solo notificar si se mueve más de 15 metros
+        forceLocationManager: false,
+        intervalDuration: const Duration(seconds: 20), // Cambiado de 5s a 20s
         foregroundNotificationConfig: const ForegroundNotificationConfig(
           notificationText: "Monitoreando ubicación con alta precisión.",
           notificationTitle: "Homeguard Activado",
@@ -97,9 +97,9 @@ class TrackingService {
     } else if (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
       locationSettings = AppleSettings(
-        accuracy: LocationAccuracy.bestForNavigation,
+        accuracy: LocationAccuracy.high,
         activityType: ActivityType.fitness,
-        distanceFilter: 0,
+        distanceFilter: 15,
         pauseLocationUpdatesAutomatically: true,
         showBackgroundLocationIndicator: true,
       );

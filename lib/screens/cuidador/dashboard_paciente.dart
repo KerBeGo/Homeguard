@@ -88,7 +88,7 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const Text(
-          "Nivel de Actividad (24h)",
+          "Monitor en Tiempo Real (30s)",
           style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 16),
@@ -112,7 +112,7 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
                 .doc(widget.patientId)
                 .collection('activity_logs')
                 .orderBy('timestamp', descending: true)
-                .limit(24)
+                .limit(40)
                 .snapshots(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
@@ -133,11 +133,11 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
                 double movement = (data['movementIndex'] ?? 9.8) - 9.8;
                 if (movement < 0) movement = 0;
                 // Escalar para que sea visible (0 a 10)
-                movement = (movement * 5).clamp(0, 10);
+                movement = (movement * 8).clamp(0, 10);
                 
-                double noise = (data['noiseIndex'] ?? 40.0);
-                // Escalar ruido (40 a 90 dB -> 0 a 10)
-                noise = ((noise - 40) / 5).clamp(0, 10);
+                double noise = (data['noiseIndex'] ?? 30.0);
+                // Escalar ruido (30 a 90 dB -> 0 a 10)
+                noise = ((noise - 30) / 6).clamp(0, 10);
 
                 movementSpots.add(FlSpot(i.toDouble(), movement));
                 noiseSpots.add(FlSpot(i.toDouble(), noise));
@@ -145,7 +145,45 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
 
               return LineChart(
                 LineChartData(
-                  gridData: const FlGridData(show: false),
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      getTooltipColor: (spot) => Colors.blueGrey.withValues(alpha: 0.9),
+                      getTooltipItems: (List<LineBarSpot> touchedBarSpots) {
+                        return touchedBarSpots.map((barSpot) {
+                          final flSpot = barSpot;
+                          final index = flSpot.x.toInt();
+                          String timeStr = "";
+                          if (index >= 0 && index < docs.length) {
+                            var d = docs[index].data() as Map<String, dynamic>;
+                            var ts = d['timestamp'] as Timestamp?;
+                            if (ts != null) {
+                              timeStr = "${DateFormat('HH:mm').format(ts.toDate())}\n";
+                            }
+                          }
+
+                          if (barSpot.barIndex == 0) {
+                            return LineTooltipItem(
+                              '${timeStr}Movimiento: ${(flSpot.y / 5).toStringAsFixed(2)} G',
+                              const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold, fontSize: 11),
+                            );
+                          } else {
+                            return LineTooltipItem(
+                              '${timeStr}Ruido: ${(flSpot.y * 6 + 30).toStringAsFixed(1)} dB',
+                              const TextStyle(color: Colors.lightBlueAccent, fontWeight: FontWeight.bold, fontSize: 11),
+                            );
+                          }
+                        }).toList();
+                      },
+                    ),
+                  ),
+                  gridData: FlGridData(
+                    show: true,
+                    drawVerticalLine: false,
+                    getDrawingHorizontalLine: (value) => FlLine(
+                      color: Colors.grey.withValues(alpha: 0.1),
+                      strokeWidth: 1,
+                    ),
+                  ),
                   titlesData: FlTitlesData(
                     rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                     topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -153,13 +191,16 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
                       sideTitles: SideTitles(
                         showTitles: true,
                         getTitlesWidget: (value, meta) {
-                          if (value % 6 == 0 && value < docs.length) {
+                          if (value % 10 == 0 && value < docs.length) {
                             var data = docs[value.toInt()].data() as Map<String, dynamic>;
                             var ts = data['timestamp'] as Timestamp?;
                             if (ts == null) return const SizedBox.shrink();
-                            return Text(
-                              DateFormat('HH:mm').format(ts.toDate()),
-                              style: const TextStyle(fontSize: 10, color: Colors.grey),
+                            return Padding(
+                              padding: const EdgeInsets.only(top: 8.0),
+                              child: Text(
+                                DateFormat('HH:mm').format(ts.toDate()),
+                                style: const TextStyle(fontSize: 9, color: Colors.grey),
+                              ),
                             );
                           }
                           return const SizedBox.shrink();
@@ -174,10 +215,18 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
                       isCurved: true,
                       color: Colors.orange,
                       barWidth: 3,
-                      dotData: const FlDotData(show: false),
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                          radius: 3,
+                          color: Colors.orange,
+                          strokeWidth: 1,
+                          strokeColor: Colors.white,
+                        ),
+                      ),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: Colors.orange.withValues(alpha: 0.1),
+                        color: Colors.orange.withValues(alpha: 0.05),
                       ),
                     ),
                     LineChartBarData(
@@ -185,10 +234,18 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
                       isCurved: true,
                       color: Colors.blue,
                       barWidth: 3,
-                      dotData: const FlDotData(show: false),
+                      dotData: FlDotData(
+                        show: true,
+                        getDotPainter: (spot, percent, barData, index) => FlDotCirclePainter(
+                          radius: 3,
+                          color: Colors.blue,
+                          strokeWidth: 1,
+                          strokeColor: Colors.white,
+                        ),
+                      ),
                       belowBarData: BarAreaData(
                         show: true,
-                        color: Colors.blue.withValues(alpha: 0.1),
+                        color: Colors.blue.withValues(alpha: 0.05),
                       ),
                     ),
                   ],
@@ -255,7 +312,7 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
             Expanded(
               child: _buildMetricCard(
                 "Nivel Actividad",
-                currentActivity > 2.0 ? "Alto" : "Bajo",
+                currentActivity > 0.3 ? "Activo" : "Bajo",
                 "Basado en sensores",
                 Colors.teal,
                 Icons.directions_walk,
