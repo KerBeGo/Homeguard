@@ -18,15 +18,15 @@ class LocalAIService {
   DateTime? _lastEmergencySoundTime;
 
   // Umbrales calibrados para robustez avanzada (Enfocado en Personas Mayores)
-  static const double _freeFallThreshold = 5.0;    // Más sensible para caídas lentas
-  static const double _impactThreshold = 16.0;    // Reducido para captar caídas menos violentas
-  static const double _moderateImpactThreshold = 14.0; // Umbral para fusión con sonido
-  static const double _criticalImpactThreshold = 22.0; // Bajado para asegurar alertas en golpes secos
-  static const double _quietThresholdLow = 7.5;    
-  static const double _quietThresholdHigh = 12.5;  
+  static const double _freeFallThreshold = 3.0;    // Reducido para evitar falsos positivos al mover el brazo
+  static const double _impactThreshold = 25.0;    // Aumentado para ignorar golpes leves (ponerlo en la mesa)
+  static const double _moderateImpactThreshold = 20.0; // Umbral para fusión con sonido (subido)
+  static const double _criticalImpactThreshold = 35.0; // Subido para evitar alertas al soltar el móvil en superficies duras
+  static const double _quietThresholdLow = 8.5;    
+  static const double _quietThresholdHigh = 11.5;  
   static const double _loudNoiseThreshold = 70.0; // Ignora ruido ambiental y conversaciones normales
   static const double _emergencySoundThreshold = 85.0; // Solo captura gritos fuertes o impactos secos
-  static const double _shakeThreshold = 40.0; // Requiere una agitación más deliberada para evitar falsas alarmas
+  static const double _shakeThreshold = 50.0; // Requiere una agitación más deliberada
 
   // Tiempos
   static const int _maxFreeFallToImpactMs = 1200; // Más tiempo para caídas complejas

@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.SEND_SMS"/>
 
     <application
         android:label="homeguard"
@@ -63,6 +64,13 @@
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="location|microphone" />
+
+        <receiver android:name=".ShutdownReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.ACTION_SHUTDOWN" />
+                <action android:name="android.intent.action.BATTERY_LOW" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

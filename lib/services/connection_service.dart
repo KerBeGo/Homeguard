@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ConnectionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -48,6 +49,12 @@ class ConnectionService {
         'cuidadorTelefono': cuidadorTelefono,
       });
 
+      // 5. Guardar localmente para el ShutdownReceiver nativo
+      if (cuidadorTelefono != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cuidadorTelefono', cuidadorTelefono);
+      }
+
       return true;
     } catch (e) {
       // Relanzamos la excepción para manejarla en la UI
@@ -74,6 +81,10 @@ class ConnectionService {
         'cuidadorId': FieldValue.delete(),
         'cuidadorTelefono': FieldValue.delete(),
       });
+
+      // 3. Limpiar localmente
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cuidadorTelefono');
     } catch (e) {
       rethrow;
     }
