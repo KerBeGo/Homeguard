@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ConnectionService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -38,16 +39,53 @@ class ConnectionService {
         'status': 'active',
       });
 
-      // 3. Actualizar el documento del usuario (Legacy support / Optimización de lectura)
-      // Mantenemos esto para que 'pacientes_of_cuidador.dart' siga funcionando
-      // mientras migramos todo a usar la colección 'connections'.
+      // 3. Obtener el teléfono del cuidador para emergencias offline
+      final cuidadorDoc = await _firestore.collection('users').doc(uidCuidador).get();
+      final cuidadorTelefono = cuidadorDoc.exists ? (cuidadorDoc.data() as Map<String, dynamic>)['telefono'] : null;
+
+      // 4. Actualizar el documento del usuario (Legacy support / Optimización de lectura)
       await _firestore.collection('users').doc(pacienteDoc.id).update({
         'cuidadorId': uidCuidador,
+        'cuidadorTelefono': cuidadorTelefono,
       });
+
+      // 5. Guardar localmente para el ShutdownReceiver nativo
+      if (cuidadorTelefono != null) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cuidadorTelefono', cuidadorTelefono);
+      }
 
       return true;
     } catch (e) {
       // Relanzamos la excepción para manejarla en la UI
+      rethrow;
+    }
+  }
+
+  /// Desvincula a un paciente de su cuidador.
+  Future<void> desvincularPaciente(String pacienteId, String cuidadorId) async {
+    try {
+      // 1. Eliminar la conexión en la colección 'connections'
+      final connections = await _firestore
+          .collection('connections')
+          .where('pacienteId', isEqualTo: pacienteId)
+          .where('cuidadorId', isEqualTo: cuidadorId)
+          .get();
+
+      for (var doc in connections.docs) {
+        await doc.reference.delete();
+      }
+
+      // 2. Limpiar los campos en el documento del paciente
+      await _firestore.collection('users').doc(pacienteId).update({
+        'cuidadorId': FieldValue.delete(),
+        'cuidadorTelefono': FieldValue.delete(),
+      });
+
+      // 3. Limpiar localmente
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('cuidadorTelefono');
+    } catch (e) {
       rethrow;
     }
   }

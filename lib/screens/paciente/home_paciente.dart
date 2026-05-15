@@ -32,7 +32,7 @@ class _HomePacienteState extends State<HomePaciente> {
     if (_trackingService.isTracking) {
       _isTracking = true;
     } else {
-      _trackingService.startMonitoring();
+      _trackingService.startMonitoring(); 
     }
   }
 
@@ -102,7 +102,52 @@ class _HomePacienteState extends State<HomePaciente> {
                               iconColor: Colors.blue,
                               title: "Ubicación",
                               value: _isTracking ? 'Activa' : 'Inactiva',
-                              subtitle: _isTracking ? '$lat, $lng' : 'Desconocida',
+                              subtitle: _isTracking 
+                                ? (data['address'] ?? '$lat, $lng') 
+                                : 'Desconocida',
+                              onTap: () {
+                                if (_isTracking) {
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                      title: const Row(
+                                        children: [
+                                          Icon(Icons.location_on, color: Colors.blue),
+                                          SizedBox(width: 10),
+                                          Text("Ubicación Exacta"),
+                                        ],
+                                      ),
+                                      content: Column(
+                                        mainAxisSize: MainAxisSize.min,
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const Text("Dirección:", style: TextStyle(fontWeight: FontWeight.bold)),
+                                          Text(data['address'] ?? "Calculando dirección..."),
+                                          const SizedBox(height: 16),
+                                          const Text("Coordenadas:", style: TextStyle(fontWeight: FontWeight.bold)),
+                                          Text("Latitud: $lat\nLongitud: $lng"),
+                                        ],
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(context),
+                                          child: const Text("Cerrar"),
+                                        ),
+                                        ElevatedButton.icon(
+                                          icon: const Icon(Icons.map_outlined),
+                                          label: const Text("Ver en Google Maps"),
+                                          onPressed: () {
+                                            // Aquí podrías usar url_launcher en el futuro para abrir:
+                                            // 'https://www.google.com/maps/search/?api=1&query=$lat,$lng'
+                                            Navigator.pop(context);
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                              },
                             ),
                           ),
                           const SizedBox(width: 16),
@@ -376,57 +421,62 @@ class _HomePacienteState extends State<HomePaciente> {
     required String title,
     required String value,
     required String subtitle,
+    VoidCallback? onTap,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.06),
-            blurRadius: 10,
-            spreadRadius: 1,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, color: iconColor, size: 20),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.blueGrey,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF1E293B),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withValues(alpha: 0.06),
+              blurRadius: 10,
+              spreadRadius: 1,
+              offset: const Offset(0, 4),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            subtitle,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: iconColor, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blueGrey,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2, // Permitir ver un poco más de dirección
+            ),
+          ],
+        ),
       ),
     );
   }

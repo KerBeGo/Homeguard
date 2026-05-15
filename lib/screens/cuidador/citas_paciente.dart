@@ -19,9 +19,15 @@ class CitasPaciente extends StatelessWidget {
         stream: FirebaseFirestore.instance
             .collection('citas')
             .where('pacienteId', isEqualTo: patientId)
-            .orderBy('fecha', descending: false)
+            // .orderBy('fecha', descending: false) // Comentado para evitar errores de índice
             .snapshots(),
         builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return Center(
+              child: Text("Error al cargar citas: ${snapshot.error}"),
+            );
+          }
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -35,7 +41,19 @@ class CitasPaciente extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     "No hay citas programadas para $patientName",
-                    style: const TextStyle(color: Colors.grey, fontSize: 16),
+                    style: const TextStyle(color: Colors.grey, fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    color: Colors.yellow[100],
+                    child: Column(
+                      children: [
+                        const Text("DEBUG INFO:", style: TextStyle(fontWeight: FontWeight.bold)),
+                        Text("Buscando en colección: 'citas'"),
+                        Text("pacienteId buscado: $patientId"),
+                      ],
+                    ),
                   ),
                 ],
               ),

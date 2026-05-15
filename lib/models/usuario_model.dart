@@ -5,6 +5,7 @@ class UsuarioModel {
   final String rol; // "PACIENTE" o "CUIDADOR"
   final String codigoVinculacion;
   final String? fcmToken; // Opcional: Para notificaciones
+  final String? telefono; // Opcional: Para alertas SMS
 
   // Constructor
   UsuarioModel({
@@ -14,6 +15,7 @@ class UsuarioModel {
     required this.rol,
     required this.codigoVinculacion,
     this.fcmToken,
+    this.telefono,
   });
 
   // 1. Convertir de MAPA (JSON de Firebase) a OBJETO DART
@@ -26,6 +28,7 @@ class UsuarioModel {
       rol: map['rol'] ?? 'PACIENTE',
       codigoVinculacion: map['codigoVinculacion'] ?? '',
       fcmToken: map['fcmToken'],
+      telefono: map['telefono'],
     );
   }
 
@@ -38,6 +41,7 @@ class UsuarioModel {
       'rol': rol,
       'codigoVinculacion': codigoVinculacion,
       'fcmToken': fcmToken,
+      'telefono': telefono,
     };
   }
 }

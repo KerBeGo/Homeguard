@@ -13,6 +13,7 @@ class AuthService {
     required String password,
     required String nombre,
     required String rol, // "CUIDADOR" o "PACIENTE"
+    String? telefono,
   }) async {
     try {
       // 1. Crear usuario en Firebase Auth (Solo email y pass)
@@ -31,6 +32,7 @@ class AuthService {
         nombre: nombre,
         rol: rol,
         codigoVinculacion: codigoUnico,
+        telefono: telefono,
       );
 
       // 4. Guardar en Firestore (Base de Datos)
