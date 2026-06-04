@@ -6,6 +6,7 @@ class UsuarioModel {
   final String codigoVinculacion;
   final String? fcmToken; // Opcional: Para notificaciones
   final String? telefono; // Opcional: Para alertas SMS
+  final int? edad; // Opcional: Usado para calcular la sensibilidad de la IA
 
   // Constructor
   UsuarioModel({
@@ -16,6 +17,7 @@ class UsuarioModel {
     required this.codigoVinculacion,
     this.fcmToken,
     this.telefono,
+    this.edad,
   });
 
   // 1. Convertir de MAPA (JSON de Firebase) a OBJETO DART
@@ -29,6 +31,7 @@ class UsuarioModel {
       codigoVinculacion: map['codigoVinculacion'] ?? '',
       fcmToken: map['fcmToken'],
       telefono: map['telefono'],
+      edad: map['edad'],
     );
   }
 
@@ -42,6 +45,7 @@ class UsuarioModel {
       'codigoVinculacion': codigoVinculacion,
       'fcmToken': fcmToken,
       'telefono': telefono,
+      'edad': edad,
     };
   }
 }

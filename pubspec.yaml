@@ -48,7 +48,8 @@ dependencies:
   sensors_plus: ^7.0.0
   tflite_flutter: ^0.12.1
   geocoding: ^4.0.0
-  noise_meter: ^5.1.0
+  record: 6.0.0
+  fftea: ^1.5.0+1
   permission_handler: ^12.0.0
   audio_session: ^0.1.21
   fl_chart: ^0.71.0
@@ -81,13 +82,14 @@ flutter:
   assets:
     - assets/HOMEGUARD.png
     - assets/HOMEGUARD_2.png
+    - assets/modelo_fusion.tflite
 
   # To add assets to your application, add an assets section, like this:
   # assets:
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
 
-  # An image asset can refer to one or more resolution-specific "variants", see
+  # An image asset can refer to one or more resolution-specific "variants", 
   # https://flutter.dev/to/resolution-aware-images
 
   # For details regarding adding assets from package dependencies, see

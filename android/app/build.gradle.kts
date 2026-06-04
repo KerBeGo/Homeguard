@@ -103,8 +103,10 @@ tasks.register("generateGoogleServices") {
 
         if (apiKey.isNotEmpty() && templateFile.exists()) {
             val content = templateFile.readText().replace("@@FIREBASE_API_KEY_ANDROID@@", apiKey)
-            outputFile.writeText(content)
-            println("INFO: google-services.json actualizado desde .env")
+            if (!outputFile.exists() || outputFile.readText() != content) {
+                outputFile.writeText(content)
+                println("INFO: google-services.json actualizado desde .env")
+            }
         }
     }
 }

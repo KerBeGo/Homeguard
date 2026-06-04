@@ -14,6 +14,34 @@ class AlertasCuidador extends StatelessWidget {
         title: const Text("Alertas"),
         backgroundColor: Colors.teal,
         automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep),
+            tooltip: "Limpiar todas las alertas",
+            onPressed: () async {
+              final confirm = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text("¿Limpiar alertas?"),
+                  content: const Text("Esto eliminará todo el historial de alertas de forma permanente."),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancelar")),
+                    TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Limpiar")),
+                  ],
+                ),
+              );
+              if (confirm == true) {
+                final docs = await FirebaseFirestore.instance.collection('alertas')
+                    .where('cuidadorId', isEqualTo: user.uid).get();
+                final batch = FirebaseFirestore.instance.batch();
+                for (var doc in docs.docs) {
+                  batch.delete(doc.reference);
+                }
+                await batch.commit();
+              }
+            },
+          ),
+        ],
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance

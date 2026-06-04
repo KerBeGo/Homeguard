@@ -1,25 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'register_screen.dart'; // Tu pantalla de registro/login
+import 'register_screen.dart';
 import 'paciente/paciente_main_screen.dart';
 import 'cuidador/cuidador_main_screen.dart';
+import '../services/local_ia_service.dart' hide debugPrint;
 
 class AccesoScreen extends StatelessWidget {
   const AccesoScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // StreamBuilder escucha si el usuario entra o sale (Login/Logout)
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // 1. Si el usuario NO está logueado, mandarlo al Registro
         if (!snapshot.hasData) {
           return const RegisterScreen();
         }
 
-        // 2. Si SI está logueado, necesitamos saber su ROL en Firestore
         User usuarioLogueado = snapshot.data!;
 
         return StreamBuilder<DocumentSnapshot>(
@@ -28,23 +26,38 @@ class AccesoScreen extends StatelessWidget {
               .doc(usuarioLogueado.uid)
               .snapshots(),
           builder: (context, snapshotFirestore) {
-            // Mientras carga el rol, mostramos un circulito
             if (snapshotFirestore.connectionState == ConnectionState.waiting) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),
               );
             }
 
-            if (snapshotFirestore.hasData && snapshotFirestore.data!.exists) {
-              // Obtenemos el rol del mapa de datos
-              Map<String, dynamic> data =
-                  snapshotFirestore.data!.data() as Map<String, dynamic>;
-              String rol = data['rol'];
+            if (snapshotFirestore.hasData && snapshotFirestore.data!.data() != null) {
+              var userDoc = snapshotFirestore.data!.data() as Map<String, dynamic>;
+              String rawRol = userDoc['rol']?.toString() ?? 'PACIENTE';
+              String rol = rawRol.trim().toUpperCase();
 
-              // 3. EL GRAN DECISOR
+              // Print debug
+              debugPrint("==== HOMEGUARD LOGIN ====");
+              debugPrint("UID: ${usuarioLogueado.uid}");
+              debugPrint("ROL EN BASE DE DATOS: '$rawRol' -> Parseado a: '$rol'");
+              debugPrint("=========================");
+
               if (rol == 'CUIDADOR') {
                 return const CuidadorMainScreen();
               } else {
+                // AUTOCONFIGURACIÓN DE LA INTELIGENCIA ARTIFICIAL PARA PACIENTES
+                int? edad = userDoc['edad'] as int?;
+                if (edad != null) {
+                  if (edad >= 65) {
+                    LocalAIService().setSensitivityLevel("ALTA");
+                  } else {
+                    LocalAIService().setSensitivityLevel("BAJA");
+                  }
+                } else {
+                  LocalAIService().setSensitivityLevel("MEDIA"); // Fallback
+                }
+
                 return const PacienteMainScreen();
               }
             }
@@ -72,9 +85,7 @@ class AccesoScreen extends StatelessWidget {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      "Error: Usuario no encontrado en la base de datos.",
-                    ),
+                    const Text("Error: Usuario no encontrado en la base de datos."),
                     const SizedBox(height: 20),
                     ElevatedButton(
                       onPressed: () => FirebaseAuth.instance.signOut(),

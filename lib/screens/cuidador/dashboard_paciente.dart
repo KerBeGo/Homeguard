@@ -350,11 +350,43 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Historial de Zonas de Riesgo",
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              "Historial de Zonas de Riesgo",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.grey),
+              tooltip: "Limpiar historial",
+              onPressed: () async {
+                final confirm = await showDialog<bool>(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: const Text("¿Limpiar historial?"),
+                    content: const Text("Esto eliminará el historial de zonas de riesgo para este paciente."),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancelar")),
+                      TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Limpiar")),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  final docs = await FirebaseFirestore.instance.collection('alertas')
+                      .where('pacienteId', isEqualTo: widget.patientId)
+                      .where('tipo', isEqualTo: 'caida').get();
+                  final batch = FirebaseFirestore.instance.batch();
+                  for (var doc in docs.docs) {
+                    batch.delete(doc.reference);
+                  }
+                  await batch.commit();
+                }
+              },
+            ),
+          ],
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 8),
         StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
               .collection('alertas')

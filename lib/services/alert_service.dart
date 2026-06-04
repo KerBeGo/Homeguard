@@ -1,11 +1,15 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/alerts_model.dart';
 import 'local_notification_service.dart';
 import 'package:another_telephony/telephony.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter/foundation.dart';
-import 'dart:io';
+
+void debugPrint(String message) {
+  // ignore: avoid_print
+  print(message);
+}
 
 class AlertService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
