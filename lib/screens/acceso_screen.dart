@@ -47,15 +47,20 @@ class AccesoScreen extends StatelessWidget {
                 return const CuidadorMainScreen();
               } else {
                 // AUTOCONFIGURACIÓN DE LA INTELIGENCIA ARTIFICIAL PARA PACIENTES
-                int? edad = userDoc['edad'] as int?;
-                if (edad != null) {
-                  if (edad >= 65) {
-                    LocalAIService().setSensitivityLevel("ALTA");
-                  } else {
-                    LocalAIService().setSensitivityLevel("BAJA");
-                  }
+                String? sensibilidadManual = userDoc['sensibilidadIA'] as String?;
+                if (sensibilidadManual != null && sensibilidadManual.isNotEmpty) {
+                  LocalAIService().setSensitivityLevel(sensibilidadManual);
                 } else {
-                  LocalAIService().setSensitivityLevel("MEDIA"); // Fallback
+                  int? edad = userDoc['edad'] as int?;
+                  if (edad != null) {
+                    if (edad >= 65) {
+                      LocalAIService().setSensitivityLevel("ALTA");
+                    } else {
+                      LocalAIService().setSensitivityLevel("MEDIA"); // Balanceado
+                    }
+                  } else {
+                    LocalAIService().setSensitivityLevel("MEDIA"); // Fallback a MEDIA
+                  }
                 }
 
                 return const PacienteMainScreen();

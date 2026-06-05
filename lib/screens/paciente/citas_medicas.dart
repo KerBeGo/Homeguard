@@ -113,7 +113,7 @@ class _CitasMedicasState extends State<CitasMedicas> {
 
                   // Programar notificación local
                   await LocalNotificationService().scheduleAppointmentNotification(
-                    id: docRef.id.hashCode,
+                    id: (docRef.id.hashCode.abs() % 10000000),
                     doctor: appointment.doctor,
                     especialidad: appointment.especialidad,
                     scheduledDate: appointmentDateTime,
@@ -123,6 +123,7 @@ class _CitasMedicasState extends State<CitasMedicas> {
                   await AlertService().enviarAlerta(
                     tipo: 'cita',
                     mensaje: 'Nueva cita: ${appointment.especialidad} con ${appointment.doctor}',
+                    mostrarNotificacionLocal: false,
                   );
 
                   if (context.mounted) Navigator.pop(context);

@@ -120,13 +120,14 @@ class LocalAIService {
     _sensitivityLevel = level.toUpperCase();
     if (_sensitivityLevel == "ALTA") {
       // Para personas con movilidad muy reducida (caídas suaves/cortas)
-      _freeFallThreshold = 4.5; // Detecta caída libre más rápido
-      _moderateImpactThreshold = 15.0; // Reacciona a impactos suaves
-      _impactThreshold = 20.0;
-      _criticalImpactThreshold = 28.0;
-      _loudNoiseThreshold = 78.0;
-      _emergencySoundThreshold = 82.0;
-      _shakeThreshold = 85.0; // Mayor tolerancia a temblores antes de dar falso positivo por agitación
+      // Ajustado para no ser tan extremo con acciones cotidianas.
+      _freeFallThreshold = 4.0; // Detecta caída libre rápido pero requiere algo de ingravidez
+      _moderateImpactThreshold = 18.0; // Ignora el simple hecho de soltarlo en la mesa (aprox 1.8G)
+      _impactThreshold = 22.0; // Impacto fuerte para personas mayores
+      _criticalImpactThreshold = 32.0;
+      _loudNoiseThreshold = 88.0; // Ruido base elevado (Voz fuerte)
+      _emergencySoundThreshold = 95.0; // Grito real (Voz normal llega a ~90dB)
+      _shakeThreshold = 65.0; // Menor umbral: más fácil dar alerta de agitación para personas débiles
       debugPrint("IA EDGE INFO: Sensibilidad configurada a ALTA. Umbrales ajustados para mayor detección.");
     } else if (_sensitivityLevel == "BAJA") {
       // Para personas activas (evitar falsos positivos deportivos)
@@ -134,19 +135,19 @@ class LocalAIService {
       _moderateImpactThreshold = 28.0; // Ignora golpes moderados
       _impactThreshold = 35.0;
       _criticalImpactThreshold = 45.0;
-      _loudNoiseThreshold = 88.0;
-      _emergencySoundThreshold = 95.0;
-      _shakeThreshold = 60.0; // Se da cuenta rápido si solo están agitando el teléfono jugando
+      _loudNoiseThreshold = 95.0;
+      _emergencySoundThreshold = 105.0;
+      _shakeThreshold = 95.0; // Mayor umbral: más difícil dar alerta falsa de agitación
       debugPrint("IA EDGE INFO: Sensibilidad configurada a BAJA. Umbrales ajustados para evitar falsos positivos.");
     } else {
       // MEDIA (Balanceada original)
       _freeFallThreshold = 3.5;
-      _moderateImpactThreshold = 20.0;
-      _impactThreshold = 25.0;
-      _criticalImpactThreshold = 35.0;
-      _loudNoiseThreshold = 82.0;
-      _emergencySoundThreshold = 88.0;
-      _shakeThreshold = 75.0;
+      _moderateImpactThreshold = 25.0;
+      _impactThreshold = 30.0;
+      _criticalImpactThreshold = 40.0;
+      _loudNoiseThreshold = 92.0;
+      _emergencySoundThreshold = 100.0;
+      _shakeThreshold = 80.0;
       debugPrint("IA EDGE INFO: Sensibilidad configurada a MEDIA. Umbrales balanceados.");
     }
   }
@@ -201,16 +202,16 @@ class LocalAIService {
 
       // Si el pico de la ventana supera el umbral de gritos
       if (peakDb >= _emergencySoundThreshold) {
-        // Contar cuántas muestras en el último 1.5s superan el umbral de ruido alto (80.0 dB)
+        // Contar cuántas muestras en el último 1.5s superan el umbral de ruido alto
         // Esto ayuda a comprobar que no sea solo un pico instantáneo o soplido
-        int loudSamplesCount = recentSamples.where((e) => e.db > 80.0).length;
+        int loudSamplesCount = recentSamples.where((e) => e.db > _loudNoiseThreshold).length;
         
-        // Esperamos al menos 4 muestras por encima de 80.0 dB para considerar que es un grito sostenido (aprox 400ms o más)
+        // Esperamos al menos 4 muestras para considerar que es un grito sostenido (aprox 400ms o más)
         double sustainedRatio = loudSamplesCount / 4.0;
         if (sustainedRatio > 1.0) sustainedRatio = 1.0;
 
-        // Calcular puntaje de intensidad normalizado (entre _emergencySoundThreshold y 105 dB)
-        double intensityScore = (peakDb - _emergencySoundThreshold) / (105.0 - _emergencySoundThreshold);
+        // Calcular puntaje de intensidad normalizado (entre _emergencySoundThreshold y 120 dB)
+        double intensityScore = (peakDb - _emergencySoundThreshold) / (120.0 - _emergencySoundThreshold);
         intensityScore = intensityScore.clamp(0.0, 1.0);
 
         // Fusión acústica: 60% peso a la duración (sostenido) y 40% a la intensidad pico
@@ -392,13 +393,25 @@ class LocalAIService {
     // A MENOS que haya un cambio drástico de orientación y quietud absoluta (caída corta).
     if (freeFallScore < 0.1) {
       if (orientationScore > 0.8 && postImpactScore > 0.8) {
-        debugPrint("IA MULTIMODAL AVISO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída desde nivel bajo).");
-        // Penalización mínima
-        jointProbability *= 0.9;
+        if (_maxImpactMagnitude > 45.0) {
+          debugPrint("IA MULTIMODAL AVISO: Impacto de golpe muy alto sin caída libre. Bloqueado (posible golpe al colchón/mesa).");
+          jointProbability *= 0.2;
+        } else {
+          debugPrint("IA MULTIMODAL AVISO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída desde nivel bajo).");
+          // Penalización mínima
+          jointProbability *= 0.9;
+        }
       } else {
         debugPrint("IA MULTIMODAL AVISO: Penalizando probabilidad por falta de caída libre (posible golpe estático).");
         jointProbability *= 0.4;
       }
+    }
+
+    // Regla 1.5: Si el dispositivo experimentó ingravidez casi PERFECTA, fue lanzado (proyectil).
+    // Una persona cayendo siempre ejerce algo de resistencia, no llega a 0.0 G puros.
+    if (_isProjectileDrop(impactTime)) {
+      debugPrint("IA MULTIMODAL AVISO: Patrón de PROYECTIL detectado. El teléfono fue lanzado a una mesa/cama o cayó solo.");
+      jointProbability *= 0.1; // Suprimir por completo
     }
 
     // Regla 2: Una caída real cambia la postura del paciente de vertical a horizontal.
@@ -468,10 +481,21 @@ class LocalAIService {
         // Excepción para caída corta: Si hay un cambio de postura muy claro y se queda muy quieto,
         // perdonamos la falta de caída libre prolongada.
         if (orientationScore > 0.8 && postImpactScore > 0.8) {
-          debugPrint("IA EDGE (CNN) INFO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída corta).");
+          if (_maxImpactMagnitude > 45.0) {
+            debugPrint("IA EDGE (CNN) AVISO: Impacto de golpe muy alto sin caída libre. Bloqueado (posible golpe al colchón/mesa).");
+            blockAlert = true;
+          } else {
+            debugPrint("IA EDGE (CNN) INFO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída corta).");
+          }
         } else {
           blockAlert = true;
         }
+      }
+
+      // Proyectil Salvaguarda: Lanzar el teléfono a la cama/mesa genera gravedad cero pura.
+      if (_isProjectileDrop(impactTime)) {
+        debugPrint("IA EDGE (CNN) AVISO: Patrón de PROYECTIL (Gravedad cero perfecta). El teléfono fue lanzado a una cama/mesa.");
+        blockAlert = true;
       }
 
       if (blockAlert) {
@@ -625,6 +649,34 @@ class LocalAIService {
     }
 
     return 0.0;
+  }
+
+  /// Verifica si el dispositivo experimentó ingravidez perfecta (Lanzamiento / Caída libre suelta).
+  /// El cuerpo humano cayendo presenta resistencia (2.0 a 5.0 m/s²), pero un teléfono suelto baja de 1.5 m/s².
+  bool _isProjectileDrop(DateTime impactTime) {
+    double minGravity = 9.8;
+    int projectileSamples = 0;
+    
+    final start = impactTime.subtract(const Duration(milliseconds: 1500));
+    final end = impactTime.add(const Duration(milliseconds: 200));
+
+    for (var entry in _accBuffer) {
+      if (entry.time.isAfter(start) && entry.time.isBefore(end)) {
+        if (entry.magnitude < minGravity) {
+          minGravity = entry.magnitude;
+        }
+        // Menos de 2.0 m/s² (aprox 0.2 G) es ingravidez casi perfecta
+        if (entry.magnitude < 2.0) {
+          projectileSamples++;
+        }
+      }
+    }
+    
+    // Si el teléfono estuvo en ingravidez perfecta por más de ~60-80ms (3-4 muestras a 50Hz)
+    if (minGravity < 2.0 && projectileSamples >= 3) {
+      return true;
+    }
+    return false;
   }
 
   /// Calcula el cambio de postura midiendo la variación angular del vector de gravedad 3D antes y después
@@ -804,9 +856,9 @@ class LocalAIService {
     }
 
     // Un solo impacto contra la cama suele durar de 1 a 3 muestras (muy rápido).
-    // Para considerarse agitación violenta sostenida, requerimos al menos 30 muestras
+    // Para considerarse agitación violenta sostenida, requerimos al menos 35 muestras
     // por encima de _shakeThreshold m/s² en el último segundo.
-    if (highAccelerationCount >= 30) {
+    if (highAccelerationCount >= 35) {
       debugPrint("IA MULTIMODAL: ¡AGITACIÓN VIOLENTA DETECTADA! (Muestras altas=$highAccelerationCount en el último segundo)");
       return true;
     }

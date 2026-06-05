@@ -33,6 +33,8 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
             const SizedBox(height: 24),
             _buildEnvironmentSummary(),
             const SizedBox(height: 24),
+            _buildSensibilidadCard(),
+            const SizedBox(height: 24),
             _buildRiskZones(),
           ],
         ),
@@ -431,6 +433,75 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
           },
         ),
       ],
+    );
+  }
+
+  Widget _buildSensibilidadCard() {
+    return StreamBuilder<DocumentSnapshot>(
+      stream: FirebaseFirestore.instance.collection('users').doc(widget.patientId).snapshots(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData || !snapshot.data!.exists) return const SizedBox.shrink();
+        var data = snapshot.data!.data() as Map<String, dynamic>;
+        String sensValue = data['sensibilidadIA'] ?? "MEDIA";
+        if (!["BAJA", "MEDIA", "ALTA"].contains(sensValue)) {
+          sensValue = "MEDIA";
+        }
+
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.tune, color: Colors.blue),
+                    SizedBox(width: 10),
+                    Text(
+                      "Sensibilidad de Detección",
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  "Ajusta la sensibilidad de la IA para detectar caídas. Alta para mayor seguridad, Baja para evitar falsas alarmas.",
+                  style: TextStyle(fontSize: 13, color: Colors.grey),
+                ),
+                const SizedBox(height: 15),
+                DropdownButtonFormField<String>(
+                  isExpanded: true,
+                  initialValue: sensValue,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: "BAJA", child: Text("BAJA - Menos sensible", overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: "MEDIA", child: Text("MEDIA - Balanceada", overflow: TextOverflow.ellipsis)),
+                    DropdownMenuItem(value: "ALTA", child: Text("ALTA - Muy sensible", overflow: TextOverflow.ellipsis)),
+                  ],
+                  onChanged: (String? newValue) async {
+                    if (newValue != null) {
+                      await FirebaseFirestore.instance
+                          .collection('users')
+                          .doc(widget.patientId)
+                          .update({'sensibilidadIA': newValue});
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text("Sensibilidad ajustada a $newValue")),
+                        );
+                      }
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
