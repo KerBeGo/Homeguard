@@ -81,7 +81,7 @@ class SensorService {
         'timestamp': FieldValue.serverTimestamp(),
       });
       debugPrint("IA DASHBOARD: Snapshot enviado. G=${avgMagnitude.toStringAsFixed(2)}, dB=${avgDb.toStringAsFixed(1)}");
-      _localAI.addDeveloperLog("SISTEMA: Analizando... G=${avgMagnitude.toStringAsFixed(2)}, dB=${avgDb.toStringAsFixed(1)} (Estado: ${_localAI.sensitivityLevel})");
+      _localAI.addLog("SISTEMA: Analizando... G=${avgMagnitude.toStringAsFixed(2)}, dB=${avgDb.toStringAsFixed(1)} (Estado: ${_localAI.sensitivityLevel})");
     } catch (e) {
       debugPrint("IA DASHBOARD ERROR: $e");
     }
