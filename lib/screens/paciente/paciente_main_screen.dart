@@ -9,6 +9,8 @@ import 'medicamentos.dart';
 import 'cuidadores_of_pacientes.dart';
 import 'perfil_paciente.dart';
 import 'citas_medicas.dart';
+import 'package:provider/provider.dart';
+import '../../providers/geofence_provider.dart';
 
 class PacienteMainScreen extends StatefulWidget {
   const PacienteMainScreen({super.key});
@@ -26,6 +28,12 @@ class _PacienteMainScreenState extends State<PacienteMainScreen> {
     super.initState();
     _requestPermissions();
     _startMedicationListener();
+
+    final User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      // Iniciar el monitoreo de ubicación en segundo plano
+      Provider.of<GeofenceProvider>(context, listen: false).init(user.uid);
+    }
   }
 
   Future<void> _requestPermissions() async {

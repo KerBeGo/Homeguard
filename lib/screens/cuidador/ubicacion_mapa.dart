@@ -4,7 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/geofence_model.dart';
 import '../../services/geofence_service.dart';
-import '../../widgets/create_geofence_dialog.dart';
+import 'create_geofence_screen.dart';
 
 class MapaScreen extends StatefulWidget {
   final String patientId;
@@ -27,80 +27,95 @@ class _MapaScreenState extends State<MapaScreen> {
     _mapController = controller;
   }
 
-  /// Muestra el diálogo para crear una nueva geocerca
-  void _showCreateGeofenceDialog(GeoPoint patientLocation) {
-    showDialog(
+  void _showGeofencesList(BuildContext context, List<GeofenceModel> geofences, GeoPoint? patientLocation, String patientName) {
+    showModalBottomSheet(
       context: context,
-      builder: (context) => CreateGeofenceDialog(
-        onCreateGeofence: (double radiusMeters) async {
-          await _createGeofence(patientLocation, radiusMeters);
-        },
-      ),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Zonas Seguras del Paciente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              if (geofences.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text('No hay zonas seguras creadas.'),
+                )
+              else
+                Expanded(
+                  child: ListView.builder(
+                    itemCount: geofences.length,
+                    itemBuilder: (context, index) {
+                      var geofence = geofences[index];
+                      return ListTile(
+                        leading: const Icon(Icons.security, color: Colors.green),
+                        title: Text(geofence.name),
+                        subtitle: Text('Radio: ${geofence.radiusMeters.toInt()}m'),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit, color: Colors.blue),
+                              onPressed: () {
+                                Navigator.pop(context); // Cerrar bottomsheet
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => CreateGeofenceScreen(
+                                      patientId: widget.patientId,
+                                      existingGeofences: geofences,
+                                      initialCenter: patientLocation,
+                                      patientName: patientName,
+                                      geofenceToEdit: geofence,
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                              onPressed: () async {
+                                await _geofenceService.deleteGeofence(geofence.id);
+                                if (mounted) Navigator.pop(context);
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('Crear Nueva Zona'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CreateGeofenceScreen(
+                          patientId: widget.patientId,
+                          existingGeofences: geofences,
+                          initialCenter: patientLocation,
+                          patientName: patientName,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
-  }
-
-  /// Crea una nueva geocerca en Firestore
-  Future<void> _createGeofence(GeoPoint center, double radiusMeters) async {
-    try {
-      // Obtener el ID del cuidador actual
-      String? caregiverId = FirebaseAuth.instance.currentUser?.uid;
-
-      if (caregiverId == null) {
-        throw Exception('No se pudo obtener el ID del cuidador');
-      }
-
-      // Crear la geocerca usando el servicio
-      await _geofenceService.createGeofence(
-        patientId: widget.patientId,
-        caregiverId: caregiverId,
-        center: center,
-        radiusMeters: radiusMeters,
-      );
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Geocerca creada exitosamente (${radiusMeters.toInt()}m)',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.green[700],
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error_outline, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Error al crear geocerca: $e',
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: Colors.red[700],
-            behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-          ),
-        );
-      }
-    }
   }
 
   @override
@@ -118,10 +133,14 @@ class _MapaScreenState extends State<MapaScreen> {
         }
 
         GeoPoint? patientLocation;
+        String patientName = 'Paciente';
 
         // Obtener la ubicación del paciente
         if (patientSnapshot.hasData && patientSnapshot.data!.exists) {
           var data = patientSnapshot.data!.data() as Map<String, dynamic>;
+          if (data.containsKey('nombre')) {
+            patientName = data['nombre'] ?? 'Paciente';
+          }
           if (data.containsKey('location')) {
             patientLocation = data['location'] as GeoPoint?;
 
@@ -135,7 +154,7 @@ class _MapaScreenState extends State<MapaScreen> {
                 Marker(
                   markerId: MarkerId(widget.patientId),
                   position: patientLatLng,
-                  infoWindow: const InfoWindow(title: 'Paciente'),
+                  infoWindow: InfoWindow(title: patientName),
                   icon: BitmapDescriptor.defaultMarkerWithHue(
                     BitmapDescriptor.hueRed,
                   ),
@@ -205,35 +224,9 @@ class _MapaScreenState extends State<MapaScreen> {
               floatingActionButton: Padding(
                 padding: const EdgeInsets.only(bottom: 75),
                 child: FloatingActionButton.extended(
-                  onPressed: () {
-                    if (patientLocation != null) {
-                      _showCreateGeofenceDialog(patientLocation);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Row(
-                            children: [
-                              const Icon(
-                                Icons.warning_amber,
-                                color: Colors.white,
-                              ),
-                              const SizedBox(width: 12),
-                              const Expanded(
-                                child: Text(
-                                  'No se pudo obtener la ubicación del paciente',
-                                  style: TextStyle(fontSize: 16),
-                                ),
-                              ),
-                            ],
-                          ),
-                          backgroundColor: Colors.orange[700],
-                          behavior: SnackBarBehavior.floating,
-                        ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.add_location_alt),
-                  label: const Text('Crear Geocerca'),
+                  onPressed: () => _showGeofencesList(context, geofenceSnapshot.data ?? [], patientLocation, patientName),
+                  icon: const Icon(Icons.format_list_bulleted),
+                  label: const Text('Gestionar Zonas'),
                   backgroundColor: Theme.of(context).primaryColor,
                 ),
               ),

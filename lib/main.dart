@@ -4,10 +4,12 @@ import 'screens/acceso_screen.dart';
 import 'firebase_options.dart'; // 2. Importar el archivo que se creó solo
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'services/notification_service.dart';
-
 import 'services/local_notification_service.dart';
+import 'package:provider/provider.dart';
+import 'providers/geofence_provider.dart';
 
-final GlobalKey<NavigatorState> globalNavigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<NavigatorState> globalNavigatorKey =
+    GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -24,7 +26,14 @@ void main() async {
   await NotificationService().initialize();
   await LocalNotificationService().init();
 
-  runApp(const MyApp());
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => GeofenceProvider()),
+      ],
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {

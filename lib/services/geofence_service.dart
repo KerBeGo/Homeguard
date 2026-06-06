@@ -1,129 +1,138 @@
+import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/geofence_model.dart';
 
-/// Servicio para gestionar geocercas en Firestore
 class GeofenceService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final String _collection = 'geofences';
 
-  /// Crea una nueva geocerca en Firestore
-  ///
-  /// [patientId]: ID del paciente
-  /// [caregiverId]: ID del cuidador que crea la geocerca
-  /// [center]: Centro de la geocerca (ubicación del paciente)
-  /// [radiusMeters]: Radio de la geocerca en metros
-  ///
-  /// Retorna el ID de la geocerca creada
-  Future<String> createGeofence({
-    required String patientId,
-    required String caregiverId,
-    required GeoPoint center,
-    required double radiusMeters,
-  }) async {
-    try {
-      // Crear el modelo de geocerca
-      GeofenceModel geofence = GeofenceModel(
-        id: '', // Se generará automáticamente
-        patientId: patientId,
-        caregiverId: caregiverId,
-        center: center,
-        radiusMeters: radiusMeters,
-        createdAt: DateTime.now(),
-        isActive: true,
+  // 1. CÁLCULO DE DISTANCIA (Fórmula de Haversine)
+  double calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    const double earthRadiusMeters = 6371000;
+    double dLat = _degreesToRadians(lat2 - lat1);
+    double dLon = _degreesToRadians(lon2 - lon1);
+
+    double a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degreesToRadians(lat1)) *
+            cos(_degreesToRadians(lat2)) *
+            sin(dLon / 2) * sin(dLon / 2);
+    double c = 2 * asin(sqrt(a));
+    return earthRadiusMeters * c;
+  }
+
+  double _degreesToRadians(double degrees) {
+    return degrees * pi / 180;
+  }
+
+  // 2. VALIDACIÓN DE SOLAPAMIENTO
+  bool hasOverlap(GeofenceModel newGeofence, List<GeofenceModel> existingGeofences) {
+    for (var geofence in existingGeofences) {
+      if (geofence.id == newGeofence.id) continue; // Ignorar a sí misma (para edición)
+
+      double distance = calculateDistance(
+        newGeofence.center.latitude,
+        newGeofence.center.longitude,
+        geofence.center.latitude,
+        geofence.center.longitude,
       );
 
-      // Guardar en Firestore
-      DocumentReference docRef = await _firestore
-          .collection(_collection)
-          .add(geofence.toMap());
+      // Si la distancia entre centros es menor a la suma de sus radios, hay solapamiento
+      if (distance <= (newGeofence.radiusMeters + geofence.radiusMeters)) {
+        return true;
+      }
+    }
+    return false;
+  }
 
-      return docRef.id;
+  // 3. LÓGICA INCLUSIVA (Múltiples geocercas) con HISTÉRESIS
+  bool isInsideSafeZones(GeoPoint currentLocation, List<GeofenceModel> activeGeofences, {double hysteresisMargin = 10.0}) {
+    if (activeGeofences.isEmpty) return true; // Si no hay zonas, asumimos a salvo por defecto para no lanzar falsas alarmas, o puedes cambiar a false.
+
+    for (var geofence in activeGeofences) {
+      double distance = calculateDistance(
+        currentLocation.latitude,
+        currentLocation.longitude,
+        geofence.center.latitude,
+        geofence.center.longitude,
+      );
+
+      // Aplicamos histéresis (buffer) para evitar el efecto rebote del GPS
+      if (distance <= (geofence.radiusMeters + hysteresisMargin)) {
+        return true; // Está a salvo en al menos una
+      }
+    }
+    return false; // Está fuera de TODAS las zonas
+  }
+
+  // 4. CRUD EN FIRESTORE
+  Future<String> saveGeofence(GeofenceModel geofence) async {
+    try {
+      if (geofence.id.isEmpty) {
+        DocumentReference docRef = await _firestore.collection(_collection).add(geofence.toMap());
+        return docRef.id;
+      } else {
+        await _firestore.collection(_collection).doc(geofence.id).update(geofence.toMap());
+        return geofence.id;
+      }
     } catch (e) {
-      throw Exception('Error al crear geocerca: $e');
+      throw Exception('Error al guardar geocerca: $e');
     }
   }
 
-  /// Obtiene todas las geocercas activas de un paciente
-  ///
-  /// [patientId]: ID del paciente
-  ///
-  /// Retorna un Stream con la lista de geocercas activas
-  Stream<List<GeofenceModel>> getActiveGeofences(String patientId) {
+  Stream<List<GeofenceModel>> getActiveGeofencesStream(String patientId) {
     return _firestore
         .collection(_collection)
         .where('patientId', isEqualTo: patientId)
         .where('isActive', isEqualTo: true)
         .snapshots()
-        .map((snapshot) {
-          return snapshot.docs.map((doc) {
-            return GeofenceModel.fromMap(doc.data(), doc.id);
-          }).toList();
-        });
+        .map((snapshot) => snapshot.docs.map((doc) => GeofenceModel.fromMap(doc.data(), doc.id)).toList());
   }
 
-  /// Desactiva una geocerca
-  ///
-  /// [geofenceId]: ID de la geocerca a desactivar
-  Future<void> deactivateGeofence(String geofenceId) async {
-    try {
-      await _firestore.collection(_collection).doc(geofenceId).update({
-        'isActive': false,
-      });
-    } catch (e) {
-      throw Exception('Error al desactivar geocerca: $e');
-    }
-  }
-
-  /// Elimina permanentemente una geocerca
-  ///
-  /// [geofenceId]: ID de la geocerca a eliminar
   Future<void> deleteGeofence(String geofenceId) async {
-    try {
-      await _firestore.collection(_collection).doc(geofenceId).delete();
-    } catch (e) {
-      throw Exception('Error al eliminar geocerca: $e');
-    }
+    await _firestore.collection(_collection).doc(geofenceId).delete();
   }
 
-  /// Verifica si un punto está fuera de todas las geocercas activas
-  ///
-  /// [patientId]: ID del paciente
-  /// [point]: Punto a verificar
-  ///
-  /// Retorna true si el punto está fuera de todas las geocercas
-  Future<bool> isPointOutsideAllGeofences(
-    String patientId,
-    GeoPoint point,
-  ) async {
+  Stream<List<GeofenceModel>> getActiveGeofences(String patientId) {
+    return getActiveGeofencesStream(patientId);
+  }
+
+  Future<bool> isPointOutsideAllGeofences(String patientId, GeoPoint point) async {
     try {
-      QuerySnapshot snapshot = await _firestore
+      final snapshot = await _firestore
           .collection(_collection)
           .where('patientId', isEqualTo: patientId)
           .where('isActive', isEqualTo: true)
           .get();
-
-      if (snapshot.docs.isEmpty) {
-        // No hay geocercas activas
-        return false;
-      }
-
-      // Verificar si está fuera de todas las geocercas
-      for (var doc in snapshot.docs) {
-        GeofenceModel geofence = GeofenceModel.fromMap(
-          doc.data() as Map<String, dynamic>,
-          doc.id,
-        );
-
-        if (geofence.isPointInside(point)) {
-          // El punto está dentro de al menos una geocerca
-          return false;
-        }
-      }
-
-      // El punto está fuera de todas las geocercas
-      return true;
+      
+      final geofences = snapshot.docs
+          .map((doc) => GeofenceModel.fromMap(doc.data(), doc.id))
+          .toList();
+          
+      if (geofences.isEmpty) return false;
+      
+      return !isInsideSafeZones(point, geofences);
     } catch (e) {
       throw Exception('Error al verificar geocercas: $e');
     }
+  }
+
+  Future<String> createGeofence({
+    required String patientId,
+    required String caregiverId,
+    required GeoPoint center,
+    required double radiusMeters,
+    String name = 'Zona Segura',
+  }) async {
+    final geofence = GeofenceModel(
+      id: '',
+      patientId: patientId,
+      caregiverId: caregiverId,
+      name: name,
+      center: center,
+      radiusMeters: radiusMeters,
+      createdAt: DateTime.now(),
+      isActive: true,
+    );
+    return await saveGeofence(geofence);
   }
 }

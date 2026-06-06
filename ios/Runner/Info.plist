@@ -49,6 +49,7 @@
 	<array>
 		<string>location</string>
 		<string>fetch</string>
+		<string>processing</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Esta aplicación requiere acceso a la ubicación cuando está en uso para monitorear el movimiento del paciente.</string>
