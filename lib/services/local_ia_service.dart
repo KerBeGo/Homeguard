@@ -120,33 +120,33 @@ class LocalAIService {
     _sensitivityLevel = level.toUpperCase();
     if (_sensitivityLevel == "ALTA") {
       // Para personas con movilidad muy reducida (caídas suaves/cortas)
-      _freeFallThreshold = 4.0; // Detecta caída libre rápido pero requiere algo de ingravidez
-      _moderateImpactThreshold = 22.0; // Aumentado para evitar falsos positivos al sentarse en un auto
-      _impactThreshold = 26.0; // Impacto fuerte para personas mayores
-      _criticalImpactThreshold = 35.0;
-      _loudNoiseThreshold = 88.0; // Ruido base elevado (Voz fuerte)
-      _emergencySoundThreshold = 95.0; // Grito real (Voz normal llega a ~90dB)
-      _shakeThreshold = 65.0; // Menor umbral: más fácil dar alerta de agitación para personas débiles
+      _freeFallThreshold = 4.0; 
+      _moderateImpactThreshold = 14.0; // Muy sensible
+      _impactThreshold = 18.0; 
+      _criticalImpactThreshold = 25.0;
+      _loudNoiseThreshold = 88.0; 
+      _emergencySoundThreshold = 95.0; 
+      _shakeThreshold = 25.0; // Muy fácil dar alerta de agitación
       debugPrint("IA EDGE INFO: Sensibilidad configurada a ALTA. Umbrales ajustados para mayor detección.");
     } else if (_sensitivityLevel == "BAJA") {
-      // Para personas activas (evitar falsos positivos deportivos)
-      _freeFallThreshold = 2.5; // Exige una caída libre más real
-      _moderateImpactThreshold = 35.0; // Ignora golpes moderados
-      _impactThreshold = 42.0;
-      _criticalImpactThreshold = 55.0;
+      // Para personas activas
+      _freeFallThreshold = 2.5; 
+      _moderateImpactThreshold = 25.0; 
+      _impactThreshold = 30.0;
+      _criticalImpactThreshold = 45.0;
       _loudNoiseThreshold = 95.0;
       _emergencySoundThreshold = 105.0;
-      _shakeThreshold = 95.0; // Mayor umbral: más difícil dar alerta falsa de agitación
+      _shakeThreshold = 60.0; 
       debugPrint("IA EDGE INFO: Sensibilidad configurada a BAJA. Umbrales ajustados para evitar falsos positivos.");
     } else {
-      // MEDIA (Balanceada original)
+      // MEDIA (Balanceada, ajustada para pruebas en cama)
       _freeFallThreshold = 3.5;
-      _moderateImpactThreshold = 28.0;
-      _impactThreshold = 33.0;
-      _criticalImpactThreshold = 45.0;
+      _moderateImpactThreshold = 18.0; // Reducido para detectar golpes en colchón
+      _impactThreshold = 22.0;
+      _criticalImpactThreshold = 30.0;
       _loudNoiseThreshold = 92.0;
       _emergencySoundThreshold = 100.0;
-      _shakeThreshold = 80.0;
+      _shakeThreshold = 35.0; // Reducido para detectar sacudidas manuales
       debugPrint("IA EDGE INFO: Sensibilidad configurada a MEDIA. Umbrales balanceados.");
     }
   }
