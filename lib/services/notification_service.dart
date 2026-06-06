@@ -1,6 +1,7 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'local_notification_service.dart';
 import 'dart:developer';
 
 // Esta función debe ser de nivel superior (fuera de la clase) para manejar mensajes en segundo plano
@@ -51,6 +52,11 @@ class NotificationService {
       if (message.notification != null) {
         log(
           'El mensaje también contenía una notificación: ${message.notification?.title}',
+        );
+        LocalNotificationService().showNotification(
+          id: message.messageId.hashCode,
+          title: message.notification?.title ?? 'Homeguard',
+          body: message.notification?.body ?? '',
         );
       }
     });

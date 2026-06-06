@@ -59,9 +59,9 @@ class SensorService {
 
   Future<void> _sendActivitySnapshot() async {
     final user = FirebaseAuth.instance.currentUser;
-    if (user == null || _magnitudeSamples == 0) return;
+    if (user == null || (_magnitudeSamples == 0 && _dbSamples == 0)) return;
 
-    double avgMagnitude = _totalMagnitude / _magnitudeSamples;
+    double avgMagnitude = _magnitudeSamples > 0 ? (_totalMagnitude / _magnitudeSamples) : 9.8;
     double avgDb = _dbSamples > 0 ? (_totalDb / _dbSamples) : 0.0;
 
     // Reiniciar contadores para el siguiente periodo
