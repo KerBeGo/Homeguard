@@ -39,6 +39,12 @@ class TrackingService {
       return;
     }
 
+    _isTracking = true;
+    _notifyListeners("Monitoreo Activo", true);
+
+    // Iniciar monitoreo de sensores (IA Local para caídas) independientemente de la ubicación
+    SensorService().startMonitoring();
+
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       _notifyListeners("Usuario no autenticado", false);
@@ -66,15 +72,8 @@ class TrackingService {
     }
 
     if (permission == LocationPermission.whileInUse) {
-      // Requerir permiso "Siempre" para mejor monitoreo en background
       await Geolocator.requestPermission();
     }
-
-    _isTracking = true;
-    _notifyListeners("Monitoreo Activo", true);
-    
-    // Iniciar monitoreo de sensores (IA Local para caídas)
-    SensorService().startMonitoring();
 
     // Cargar geocercas localmente para uso offline
     _geofenceService.getActiveGeofences(user.uid).first.then((list) {

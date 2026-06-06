@@ -29,10 +29,41 @@ class _PacienteMainScreenState extends State<PacienteMainScreen> {
   }
 
   Future<void> _requestPermissions() async {
-    await [
+    Map<Permission, PermissionStatus> statuses = await [
       Permission.sms,
       Permission.phone,
+      Permission.microphone,
     ].request();
+
+    bool permanentlyDenied = false;
+    statuses.forEach((permission, status) {
+      if (status.isPermanentlyDenied) {
+        permanentlyDenied = true;
+      }
+    });
+
+    if (permanentlyDenied && mounted) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text("Permisos requeridos"),
+          content: const Text("Para que la alerta de caída y apagado funcione sin internet, debes conceder el permiso de SMS y Teléfono en la configuración de la aplicación."),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            ),
+            TextButton(
+              onPressed: () {
+                openAppSettings();
+                Navigator.pop(context);
+              },
+              child: const Text("Abrir Configuración"),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   void _startMedicationListener() {

@@ -404,6 +404,37 @@ class _HomePacienteState extends State<HomePaciente> {
                         "El paciente ha salido de la zona segura",
                       ),
                     ),
+                    _buildAlertButton(
+                      context,
+                      label: "Test SMS",
+                      icon: Icons.sms,
+                      color: Colors.teal,
+                      onPressed: () async {
+                        try {
+                          await _alertService.forzarSmsDePrueba(
+                            "prueba",
+                            "Este es un mensaje de prueba forzado por SMS.",
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Intento de envío de SMS ejecutado"),
+                                backgroundColor: Colors.teal,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("Error al probar SMS: $e"),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
                   ],
                 ),
               ),

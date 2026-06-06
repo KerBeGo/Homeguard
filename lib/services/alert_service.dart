@@ -142,4 +142,14 @@ class AlertService {
       debugPrint("ERROR AL ENVIAR SMS DE EMERGENCIA: $e");
     }
   }
+
+  Future<void> forzarSmsDePrueba(String tipo, String mensaje) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      debugPrint("Forzando envío de SMS de prueba...");
+      await _enviarSmsDeEmergencia(tipo, mensaje, user.uid);
+    } else {
+      debugPrint("Error forzando SMS: Usuario no logueado");
+    }
+  }
 }
