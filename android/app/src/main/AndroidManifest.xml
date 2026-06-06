@@ -20,7 +20,7 @@
 
     <application
         android:label="homeguard"
-        android:name="${applicationName}"
+        android:name=".MainApplication"
         android:icon="@mipmap/ic_launcher">
         <activity
             android:name=".MainActivity"
@@ -70,12 +70,7 @@
             android:exported="false"
             android:foregroundServiceType="location|microphone" />
 
-        <receiver android:name=".ShutdownReceiver" android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.ACTION_SHUTDOWN" />
-                <action android:name="android.intent.action.BATTERY_LOW" />
-            </intent-filter>
-        </receiver>
+
 
     </application>
 

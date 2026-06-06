@@ -56,9 +56,17 @@ class ShutdownReceiver : BroadcastReceiver() {
                 }
 
                 try {
-                    val smsManager = context.getSystemService(SmsManager::class.java)
+                    val smsManager = SmsManager.getDefault()
                     smsManager.sendTextMessage(formattedNumber, null, mensaje, null, null)
                     Log.d("ShutdownReceiver", "SMS de emergencia enviado a $formattedNumber con texto: $mensaje")
+                    
+                    // IMPORTANTE: Pausar el hilo unos segundos para darle tiempo a la antena
+                    // del celular de enviar el SMS antes de que el OS corte la energía.
+                    if (action == Intent.ACTION_SHUTDOWN) {
+                        Log.d("ShutdownReceiver", "Pausando 4 segundos para asegurar transmisión del SMS...")
+                        Thread.sleep(4000)
+                        Log.d("ShutdownReceiver", "Pausa terminada.")
+                    }
                 } catch (e: Exception) {
                     Log.e("ShutdownReceiver", "Error enviando SMS nativo", e)
                 }

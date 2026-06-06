@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void debugPrint(String message) {
   // ignore: avoid_print
@@ -51,6 +52,51 @@ class LocalAIService {
   LocalAIService._internal() {
     // Intentar inicializar el modelo de TensorFlow Lite al instanciar el servicio
     Future.microtask(() => initializeModel());
+    Future.microtask(() => _loadCalibration());
+  }
+
+  int _falsePositivesCount = 0;
+  bool _isTrainingMode = true; // Modo entrenamiento por defecto
+
+  bool get isTrainingMode => _isTrainingMode;
+
+  Future<void> _loadCalibration() async {
+    final prefs = await SharedPreferences.getInstance();
+    _falsePositivesCount = prefs.getInt('falsePositivesCount') ?? 0;
+    _isTrainingMode = prefs.getBool('isTrainingMode') ?? true;
+  }
+
+  Future<void> setTrainingMode(bool value) async {
+    _isTrainingMode = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isTrainingMode', value);
+    debugPrint("IA EDGE INFO: Modo entrenamiento ${value ? 'ACTIVADO' : 'DESACTIVADO'}");
+  }
+
+  void _applyCalibrationOffset() {
+    // Por cada falso positivo reportado, el sistema se hace un poco más "duro"
+    // Máximo 15 niveles de endurecimiento (aprox 30% más duro).
+    int offsetLevel = _falsePositivesCount;
+    if (offsetLevel > 15) offsetLevel = 15;
+    
+    double multiplier = 1.0 + (offsetLevel * 0.02); // +2% por cada falso positivo
+    
+    _moderateImpactThreshold *= multiplier;
+    _impactThreshold *= multiplier;
+    _criticalImpactThreshold *= multiplier;
+    _shakeThreshold *= multiplier;
+    
+    debugPrint("IA EDGE INFO: Aprendizaje Activo Aplicado. Multiplicador de impacto: ${multiplier.toStringAsFixed(2)}x (Basado en $_falsePositivesCount correcciones).");
+  }
+
+  void reportFalsePositive(String tipo) async {
+    _falsePositivesCount++;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('falsePositivesCount', _falsePositivesCount);
+    
+    debugPrint("IA EDGE LEARNING: Falso positivo de tipo '$tipo' reportado por el usuario. Re-calibrando umbrales...");
+    // Volver a aplicar los niveles base y luego el nuevo offset
+    setSensitivityLevel(_sensitivityLevel);
   }
 
   // Stream de logs para el Dashboard del Desarrollador
@@ -149,6 +195,8 @@ class LocalAIService {
       _shakeThreshold = 35.0; // Reducido para detectar sacudidas manuales
       debugPrint("IA EDGE INFO: Sensibilidad configurada a MEDIA. Umbrales balanceados.");
     }
+    
+    _applyCalibrationOffset();
   }
 
   /// Carga e inicializa el modelo Edge AI (.tflite) desde los assets locales

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
+import '../../services/local_ia_service.dart';
 
 class PerfilPaciente extends StatelessWidget {
   const PerfilPaciente({super.key});
@@ -130,6 +131,24 @@ class PerfilPaciente extends StatelessWidget {
                         ),
                       ],
                     ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Card(
+                  child: StatefulBuilder(
+                    builder: (BuildContext context, StateSetter setState) {
+                      return SwitchListTile(
+                        secondary: const Icon(Icons.model_training, color: Colors.green),
+                        title: const Text('Modo Entrenamiento'),
+                        subtitle: const Text('Permite cancelar alertas para entrenar la IA. Si se desactiva, envía alertas de inmediato.'),
+                        value: LocalAIService().isTrainingMode,
+                        onChanged: (bool value) {
+                          setState(() {
+                            LocalAIService().setTrainingMode(value);
+                          });
+                        },
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(height: 30),
