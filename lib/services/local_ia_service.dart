@@ -172,7 +172,7 @@ class LocalAIService {
       _criticalImpactThreshold = 25.0;
       _loudNoiseThreshold = 88.0; 
       _emergencySoundThreshold = 95.0; 
-      _shakeThreshold = 25.0; // Muy fácil dar alerta de agitación
+      _shakeThreshold = 18.0; // Muy fácil dar alerta de agitación (aprox 1.8 G)
       debugPrint("IA EDGE INFO: Sensibilidad configurada a ALTA. Umbrales ajustados para mayor detección.");
     } else if (_sensitivityLevel == "BAJA") {
       // Para personas activas
@@ -182,7 +182,7 @@ class LocalAIService {
       _criticalImpactThreshold = 45.0;
       _loudNoiseThreshold = 95.0;
       _emergencySoundThreshold = 105.0;
-      _shakeThreshold = 70.0; // Muy duro
+      _shakeThreshold = 45.0; // Muy duro (aprox 4.5 G)
       debugPrint("IA EDGE INFO: Sensibilidad configurada a BAJA. Umbrales ajustados para evitar falsos positivos.");
     } else {
       // MEDIA (Balanceada, ajustada para pruebas en cama)
@@ -192,7 +192,7 @@ class LocalAIService {
       _criticalImpactThreshold = 30.0;
       _loudNoiseThreshold = 92.0;
       _emergencySoundThreshold = 100.0;
-      _shakeThreshold = 45.0; // Reducido para detectar sacudidas manuales reales, ignorando agarres bruscos
+      _shakeThreshold = 28.0; // Reducido para detectar sacudidas manuales reales (aprox 2.8 G)
       debugPrint("IA EDGE INFO: Sensibilidad configurada a MEDIA. Umbrales balanceados.");
     }
     
