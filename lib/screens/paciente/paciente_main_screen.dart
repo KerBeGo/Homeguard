@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:async';
 import '../../services/medication_service.dart';
@@ -23,7 +24,15 @@ class _PacienteMainScreenState extends State<PacienteMainScreen> {
   @override
   void initState() {
     super.initState();
+    _requestPermissions();
     _startMedicationListener();
+  }
+
+  Future<void> _requestPermissions() async {
+    await [
+      Permission.sms,
+      Permission.phone,
+    ].request();
   }
 
   void _startMedicationListener() {
