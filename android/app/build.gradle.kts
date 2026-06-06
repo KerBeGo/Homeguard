@@ -96,8 +96,12 @@ tasks.register("generateGoogleServices") {
     val templateFile = file("google-services.json.template")
     val outputFile = file("google-services.json")
 
-    inputs.file(secretsFile)
-    inputs.file(templateFile)
+    if (secretsFile.exists()) {
+        inputs.file(secretsFile)
+    }
+    if (templateFile.exists()) {
+        inputs.file(templateFile)
+    }
     outputs.file(outputFile)
 
     doLast {
