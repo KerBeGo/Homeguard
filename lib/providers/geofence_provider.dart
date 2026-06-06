@@ -4,7 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/geofence_model.dart';
 import '../services/geofence_service.dart';
-import '../services/alert_service.dart';
+import '../services/alert_service.dart' hide debugPrint;
 
 class GeofenceProvider with ChangeNotifier {
   final GeofenceService _geofenceService = GeofenceService();

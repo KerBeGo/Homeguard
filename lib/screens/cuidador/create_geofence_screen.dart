@@ -78,19 +78,17 @@ class _CreateGeofenceScreenState extends State<CreateGeofenceScreen> {
 
       await _geofenceService.saveGeofence(geofence);
 
-      if (context.mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Geocerca creada exitosamente'), backgroundColor: Colors.green),
-        );
-      }
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Geocerca creada exitosamente'), backgroundColor: Colors.green),
+      );
     } catch (e) {
       setState(() { _isSaving = false; });
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.red),
-        );
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.red),
+      );
     }
   }
 
