@@ -209,7 +209,7 @@ class _HomeCuidadorState extends State<HomeCuidador> {
         height: 180,
         child: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance
-              .collection('users')
+              .collection('connections')
               .where('cuidadorId', isEqualTo: user!.uid)
               .snapshots(),
           builder: (context, snapshot) {
@@ -252,81 +252,94 @@ class _HomeCuidadorState extends State<HomeCuidador> {
               scrollDirection: Axis.horizontal,
               itemCount: limitDocs.length,
               itemBuilder: (context, index) {
-                var pacienteData =
+                var connectionData =
                     limitDocs[index].data() as Map<String, dynamic>;
-                String patientId = limitDocs[index].id;
-                String nombre = pacienteData['nombre'] ?? 'Paciente';
+                String patientId = connectionData['pacienteId'] ?? '';
 
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PatientDetailScreen(
-                          patientId: patientId,
-                          patientName: nombre,
+                if (patientId.isEmpty) return const SizedBox.shrink();
+
+                return FutureBuilder<DocumentSnapshot>(
+                  future: FirebaseFirestore.instance.collection('users').doc(patientId).get(),
+                  builder: (context, userSnapshot) {
+                    if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+                      return const SizedBox.shrink();
+                    }
+
+                    var pacienteData = userSnapshot.data!.data() as Map<String, dynamic>;
+                    String nombre = pacienteData['nombre'] ?? 'Paciente';
+
+                    return GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PatientDetailScreen(
+                              patientId: patientId,
+                              patientName: nombre,
+                            ),
+                          ),
+                        );
+                      },
+                      child: Container(
+                        width: 140,
+                        margin: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(25),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.grey.withValues(alpha: 0.1),
+                              blurRadius: 10,
+                              offset: const Offset(0, 5),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Hero(
+                              tag: 'avatar_$patientId',
+                              child: CircleAvatar(
+                                radius: 30,
+                                backgroundColor: Colors.teal.shade50,
+                                child: Text(
+                                  nombre.substring(0, 1).toUpperCase(),
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.teal.shade800,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              nombre,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              pacienteData['address'] ?? "Ubicación desconocida",
+                              style: const TextStyle(
+                                fontSize: 11,
+                                color: Colors.grey,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                     );
                   },
-                  child: Container(
-                    width: 140,
-                    margin: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 10,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(25),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.grey.withValues(alpha: 0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Hero(
-                          tag: 'avatar_$patientId',
-                          child: CircleAvatar(
-                            radius: 30,
-                            backgroundColor: Colors.teal.shade50,
-                            child: Text(
-                              nombre.substring(0, 1).toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.teal.shade800,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                          nombre,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          pacienteData['address'] ?? "Ubicación desconocida",
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Colors.grey,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
                 );
               },
             );

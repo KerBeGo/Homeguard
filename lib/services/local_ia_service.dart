@@ -75,11 +75,11 @@ class LocalAIService {
 
   void _applyCalibrationOffset() {
     // Por cada falso positivo reportado, el sistema se hace un poco más "duro"
-    // Máximo 15 niveles de endurecimiento (aprox 30% más duro).
+    // Máximo 10 niveles de endurecimiento (hasta 100% más duro).
     int offsetLevel = _falsePositivesCount;
-    if (offsetLevel > 15) offsetLevel = 15;
+    if (offsetLevel > 10) offsetLevel = 10;
     
-    double multiplier = 1.0 + (offsetLevel * 0.02); // +2% por cada falso positivo
+    double multiplier = 1.0 + (offsetLevel * 0.10); // +10% por cada falso positivo
     
     _moderateImpactThreshold *= multiplier;
     _impactThreshold *= multiplier;
@@ -182,7 +182,7 @@ class LocalAIService {
       _criticalImpactThreshold = 45.0;
       _loudNoiseThreshold = 95.0;
       _emergencySoundThreshold = 105.0;
-      _shakeThreshold = 60.0; 
+      _shakeThreshold = 70.0; // Muy duro
       debugPrint("IA EDGE INFO: Sensibilidad configurada a BAJA. Umbrales ajustados para evitar falsos positivos.");
     } else {
       // MEDIA (Balanceada, ajustada para pruebas en cama)
@@ -192,7 +192,7 @@ class LocalAIService {
       _criticalImpactThreshold = 30.0;
       _loudNoiseThreshold = 92.0;
       _emergencySoundThreshold = 100.0;
-      _shakeThreshold = 35.0; // Reducido para detectar sacudidas manuales
+      _shakeThreshold = 45.0; // Reducido para detectar sacudidas manuales reales, ignorando agarres bruscos
       debugPrint("IA EDGE INFO: Sensibilidad configurada a MEDIA. Umbrales balanceados.");
     }
     

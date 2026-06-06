@@ -19,7 +19,7 @@ class PacientesDeCuidador extends StatelessWidget {
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
-            .collection('users')
+            .collection('connections')
             .where('cuidadorId', isEqualTo: user.uid)
             .snapshots(),
         builder: (context, snapshot) {
@@ -60,50 +60,62 @@ class PacientesDeCuidador extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             itemCount: snapshot.data!.docs.length,
             itemBuilder: (context, index) {
-              var pacienteData =
+              var connectionData =
                   snapshot.data!.docs[index].data() as Map<String, dynamic>;
+              String pacienteId = connectionData['pacienteId'] ?? '';
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                elevation: 2,
-                child: ListTile(
-                  leading: const CircleAvatar(
-                    backgroundColor: Colors.blue,
-                    child: Icon(Icons.person, color: Colors.white),
-                  ),
-                  title: Text(
-                    pacienteData['nombre'] ?? 'Paciente',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  subtitle: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(pacienteData['email'] ?? ''),
-                      const SizedBox(height: 4),
-                      Text(
-                        'Código: ${pacienteData['codigoVinculacion'] ?? 'Sin código'}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
+              if (pacienteId.isEmpty) return const SizedBox.shrink();
+
+              return FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance.collection('users').doc(pacienteId).get(),
+                builder: (context, userSnapshot) {
+                  if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
+                    return const SizedBox.shrink();
+                  }
+
+                  var pacienteData = userSnapshot.data!.data() as Map<String, dynamic>;
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    elevation: 2,
+                    child: ListTile(
+                      leading: const CircleAvatar(
+                        backgroundColor: Colors.blue,
+                        child: Icon(Icons.person, color: Colors.white),
                       ),
-                    ],
-                  ),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () {
-                    // Aquí podrías navegar a los detalles del paciente
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => PatientDetailScreen(
-                          patientId:
-                              snapshot.data!.docs[index].id, // Use document ID!
-                          patientName: pacienteData['nombre'] ?? 'Paciente',
-                        ),
+                      title: Text(
+                        pacienteData['nombre'] ?? 'Paciente',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    );
-                  },
-                ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(pacienteData['email'] ?? ''),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Código: ${pacienteData['codigoVinculacion'] ?? 'Sin código'}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
+                      ),
+                      trailing: const Icon(Icons.chevron_right),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PatientDetailScreen(
+                              patientId: pacienteId,
+                              patientName: pacienteData['nombre'] ?? 'Paciente',
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
               );
             },
           );
