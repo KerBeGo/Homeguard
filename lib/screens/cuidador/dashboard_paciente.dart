@@ -280,49 +280,92 @@ class _DashboardPacienteState extends State<DashboardPaciente> {
   }
 
   Widget _buildEnvironmentSummary() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('users')
-          .doc(widget.patientId)
-          .collection('activity_logs')
-          .orderBy('timestamp', descending: true)
-          .limit(1)
-          .snapshots(),
-      builder: (context, snapshot) {
-        double currentNoise = 0;
-        double currentActivity = 0;
-        
-        if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
-          var data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
-          currentNoise = data['noiseIndex'] ?? 0;
-          currentActivity = (data['movementIndex'] ?? 9.8) - 9.8;
-          if (currentActivity < 0) currentActivity = 0;
-        }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          "Estado Actual (Actualizado cada 30s)",
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+        ),
+        const SizedBox(height: 12),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(widget.patientId)
+              .collection('activity_logs')
+              .orderBy('timestamp', descending: true)
+              .limit(1)
+              .snapshots(),
+          builder: (context, snapshot) {
+            double currentNoise = 0;
+            double currentActivity = 0;
+            
+            if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+              var data = snapshot.data!.docs.first.data() as Map<String, dynamic>;
+              currentNoise = data['noiseIndex'] ?? 0;
+              currentActivity = (data['movementIndex'] ?? 9.8) - 9.8;
+              if (currentActivity < 0) currentActivity = 0;
+            }
 
-        return Row(
-          children: [
-            Expanded(
-              child: _buildMetricCard(
-                "Ruido Actual",
-                "${currentNoise.toStringAsFixed(1)} dB",
-                currentNoise > 70 ? "Elevado" : "Normal",
-                currentNoise > 70 ? Colors.red : Colors.green,
-                Icons.volume_up,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildMetricCard(
-                "Nivel Actividad",
-                currentActivity > 0.3 ? "Activo" : "Bajo",
-                "Basado en sensores",
-                Colors.teal,
-                Icons.directions_walk,
-              ),
-            ),
-          ],
-        );
-      },
+            String noiseLevel = "Esperando...";
+            Color noiseColor = Colors.grey;
+            if (currentNoise > 0) {
+              if (currentNoise < 40) {
+                noiseLevel = "Silencioso";
+                noiseColor = Colors.green;
+              } else if (currentNoise < 60) {
+                noiseLevel = "Normal";
+                noiseColor = Colors.teal;
+              } else if (currentNoise < 75) {
+                noiseLevel = "Voces / TV";
+                noiseColor = Colors.orange;
+              } else {
+                noiseLevel = "Ruidoso";
+                noiseColor = Colors.red;
+              }
+            }
+
+            String actLevel = "Esperando...";
+            Color actColor = Colors.grey;
+            if (snapshot.hasData && snapshot.data!.docs.isNotEmpty) {
+              if (currentActivity <= 0.05) {
+                actLevel = "En Reposo";
+                actColor = Colors.blue;
+              } else if (currentActivity < 0.5) {
+                actLevel = "Movimiento Leve";
+                actColor = Colors.teal;
+              } else {
+                actLevel = "Activo";
+                actColor = Colors.orange;
+              }
+            }
+
+            return Row(
+              children: [
+                Expanded(
+                  child: _buildMetricCard(
+                    "Entorno Acústico",
+                    noiseLevel,
+                    currentNoise > 0 ? "~${currentNoise.toStringAsFixed(0)} dB" : "Sin datos recientes",
+                    noiseColor,
+                    Icons.volume_up,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: _buildMetricCard(
+                    "Nivel de Actividad",
+                    actLevel,
+                    "Sensor de movimiento",
+                    actColor,
+                    Icons.directions_walk,
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
+      ],
     );
   }
 

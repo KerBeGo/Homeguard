@@ -83,7 +83,7 @@ class PerfilCuidador extends StatelessWidget {
                     title: const Text('Pacientes vinculados'),
                     subtitle: FutureBuilder<QuerySnapshot>(
                       future: FirebaseFirestore.instance
-                          .collection('users')
+                          .collection('connections')
                           .where('cuidadorId', isEqualTo: user.uid)
                           .get(),
                       builder: (context, snapshot) {
