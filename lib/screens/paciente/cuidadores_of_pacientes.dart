@@ -15,26 +15,17 @@ class CuidadoresDePaciente extends StatelessWidget {
         title: const Text("Mis Cuidadores"),
         automaticallyImplyLeading: false,
       ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance
-            .collection('users')
-            .doc(user.uid)
-            .get(),
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('connections')
+            .where('pacienteId', isEqualTo: user.uid)
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(
-              child: Text("No se encontró información del usuario"),
-            );
-          }
-
-          var data = snapshot.data!.data() as Map<String, dynamic>;
-          String? cuidadorId = data['cuidadorId'];
-
-          if (cuidadorId == null || cuidadorId.isEmpty) {
+          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -63,28 +54,44 @@ class CuidadoresDePaciente extends StatelessWidget {
             );
           }
 
-          return FutureBuilder<DocumentSnapshot>(
-            future: FirebaseFirestore.instance
-                .collection('users')
-                .doc(cuidadorId)
-                .get(),
-            builder: (context, cuidadorSnapshot) {
-              if (cuidadorSnapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+          final connections = snapshot.data!.docs;
 
-              if (!cuidadorSnapshot.hasData || !cuidadorSnapshot.data!.exists) {
-                return const Center(child: Text("No se encontró el cuidador"));
-              }
+          // Filtramos duplicados en memoria por precaución (usando un Set)
+          final Set<String> uniqueCuidadorIds = {};
+          final List<QueryDocumentSnapshot> uniqueConnections = [];
 
-              var cuidadorData =
-                  cuidadorSnapshot.data!.data() as Map<String, dynamic>;
+          for (var doc in connections) {
+            var data = doc.data() as Map<String, dynamic>;
+            String cuidadorId = data['cuidadorId'] ?? '';
+            if (cuidadorId.isNotEmpty && !uniqueCuidadorIds.contains(cuidadorId)) {
+              uniqueCuidadorIds.add(cuidadorId);
+              uniqueConnections.add(doc);
+            }
+          }
 
-              return ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  Card(
+          return ListView.builder(
+            padding: const EdgeInsets.all(16),
+            itemCount: uniqueConnections.length,
+            itemBuilder: (context, index) {
+              var connectionData = uniqueConnections[index].data() as Map<String, dynamic>;
+              String cuidadorId = connectionData['cuidadorId'] ?? '';
+
+              return FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(cuidadorId)
+                    .get(),
+                builder: (context, cuidadorSnapshot) {
+                  if (!cuidadorSnapshot.hasData || !cuidadorSnapshot.data!.exists) {
+                    return const SizedBox.shrink(); // Cuidador eliminado
+                  }
+
+                  var cuidadorData =
+                      cuidadorSnapshot.data!.data() as Map<String, dynamic>;
+
+                  return Card(
                     elevation: 4,
+                    margin: const EdgeInsets.only(bottom: 16),
                     child: Padding(
                       padding: const EdgeInsets.all(16.0),
                       child: Column(
@@ -138,8 +145,8 @@ class CuidadoresDePaciente extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
-                ],
+                  );
+                },
               );
             },
           );
