@@ -164,6 +164,13 @@ class AlertService {
     final user = _auth.currentUser;
     if (user != null) {
       debugPrint("Forzando envío de SMS de prueba...");
+      
+      // Mostrar notificación local al paciente para confirmar la acción
+      await LocalNotificationService().sendInstantNotification(
+        'PRUEBA DE SMS',
+        'Enviando mensaje de emergencia por SMS a tu cuidador...',
+      );
+      
       await _enviarSmsDeEmergencia(tipo, mensaje, user.uid);
     } else {
       debugPrint("Error forzando SMS: Usuario no logueado");
