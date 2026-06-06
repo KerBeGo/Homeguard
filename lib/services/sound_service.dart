@@ -1,19 +1,28 @@
 import 'dart:async';
-import 'package:noise_meter/noise_meter.dart';
+import 'dart:typed_data';
+import 'dart:math';
+import 'package:record/record.dart';
+import 'package:fftea/fftea.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'sensor_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:audio_session/audio_session.dart';
+import 'sensor_service.dart';
+
+void debugPrint(String message) {
+  // ignore: avoid_print
+  print(message);
+}
 
 class SoundService {
   static final SoundService _instance = SoundService._internal();
   factory SoundService() => _instance;
   SoundService._internal();
 
-  NoiseMeter? _noiseMeter;
-  StreamSubscription<NoiseReading>? _noiseSubscription;
+  final AudioRecorder _record = AudioRecorder();
+  StreamSubscription<Uint8List>? _audioStreamSubscription;
+  final FFT _fft = FFT(256); // 256 puntos -> 128 frecuencias
 
   bool _isMonitoring = false;
+  final List<int> _audioBuffer = [];
 
   Future<void> startMonitoring() async {
     if (_isMonitoring) return;
@@ -42,44 +51,95 @@ class SoundService {
           androidAudioFocusGainType: AndroidAudioFocusGainType.gain,
         ));
         await session.setActive(true);
-        debugPrint("SENSOR DE SONIDO: Sesión de audio activada para fondo.");
+        debugPrint("SENSOR DE SONIDO: Sesión de audio activada.");
 
-        _noiseMeter = NoiseMeter();
-        debugPrint("SENSOR DE SONIDO: Preparando micrófono...");
+        if (await _record.hasPermission()) {
+          final stream = await _record.startStream(const RecordConfig(
+            encoder: AudioEncoder.pcm16bits,
+            sampleRate: 16000,
+            numChannels: 1,
+          ));
 
-        // Pequeño retraso para asegurar que el hardware esté listo tras el permiso
-        Future.delayed(const Duration(seconds: 1), () {
-          _noiseSubscription = _noiseMeter!.noise.listen(
-            (NoiseReading noiseReading) {
-              double db = noiseReading.maxDecibel;
+          _audioStreamSubscription = stream.listen((data) {
+            // Usamos ByteData para leer los enteros de 16-bits de forma segura, 
+            // saltándonos el problema de alineación de memoria (Offset múltiple de 2).
+            final byteData = ByteData.sublistView(data);
+            final int numSamples = data.length ~/ 2;
 
-              if (db != double.negativeInfinity) {
-                // Notificar al SensorService
-                SensorService().handleAudioUpdate(db);
-
-                // Log de monitoreo profesional
-                debugPrint("MONITOR AUDIO -> ${db.toStringAsFixed(1)} dB");
+            for (int i = 0; i < numSamples; i++) {
+              // Leer cada muestra como un entero de 16 bits (Little Endian es el estándar PCM)
+              int sample = byteData.getInt16(i * 2, Endian.little);
+              _audioBuffer.add(sample);
+              
+              if (_audioBuffer.length == 256) {
+                _processFftFrame(_audioBuffer);
+                _audioBuffer.clear();
               }
-            },
-            onError: (Object error) {
-              debugPrint("ERROR EN STREAM DE SONIDO: $error");
-            },
-          );
+            }
+          });
+
           _isMonitoring = true;
-          debugPrint("SENSOR DE SONIDO: Monitoreo activo y escuchando.");
-        });
+          debugPrint("SENSOR DE SONIDO: FFT Activo (16kHz, 256 puntos).");
+        }
       } catch (e) {
         debugPrint("ERROR AL INICIAR SENSOR DE SONIDO: $e");
       }
     } else {
-      debugPrint(
-        "SENSOR DE SONIDO: No se puede iniciar porque el permiso es $status",
-      );
+      debugPrint("SENSOR DE SONIDO: Permiso denegado $status");
     }
   }
 
+  void _processFftFrame(List<int> frame) {
+    // Normalizar a flotantes (-1.0 a 1.0) y calcular la media (DC Offset)
+    double sum = 0.0;
+    for (int i = 0; i < 256; i++) {
+      sum += frame[i].toDouble() / 32768.0;
+    }
+    double mean = sum / 256.0;
+
+    final Float64List floatFrame = Float64List(256);
+    double sumSquares = 0.0;
+
+    for (int i = 0; i < 256; i++) {
+      // Restar la media para eliminar el offset de corriente continua del micrófono físico
+      double val = (frame[i].toDouble() / 32768.0) - mean;
+      floatFrame[i] = val;
+      sumSquares += val * val;
+    }
+
+    // Calcular volumen global real (RMS) limpio
+    double rms = sqrt(sumSquares / 256.0);
+    double realVolumeDb = 0.0;
+    if (rms > 1e-6) {
+      realVolumeDb = 20 * log(rms) / ln10;
+      realVolumeDb = realVolumeDb + 100.0; // Escalar aproximado SPL
+      if (realVolumeDb < 0) realVolumeDb = 0.0;
+      if (realVolumeDb > 120) realVolumeDb = 120.0;
+    }
+
+    // Calcular FFT (Magnitudes de 129 bins, usamos 128)
+    final magnitudes = _fft.realFft(floatFrame).magnitudes();
+
+    List<double> dbFrequencies = [];
+
+    for (int i = 0; i < 128; i++) {
+      double mag = magnitudes[i];
+      // Convertir a Decibelios para la red neuronal
+      double db = 20 * log(max(mag, 1e-6)) / ln10;
+      db = db + 100.0; 
+      if (db < 0) db = 0;
+      if (db > 120) db = 120;
+      
+      dbFrequencies.add(db);
+    }
+
+    // Enviamos al IA Service el Volumen Máximo RMS y las 128 bandas
+    SensorService().handleAudioUpdate(realVolumeDb, dbFrequencies);
+  }
+
   void stopMonitoring() {
-    _noiseSubscription?.cancel();
+    _audioStreamSubscription?.cancel();
+    _record.stop();
     _isMonitoring = false;
   }
 }

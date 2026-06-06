@@ -44,17 +44,6 @@ class CitasPaciente extends StatelessWidget {
                     style: const TextStyle(color: Colors.grey, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    color: Colors.yellow[100],
-                    child: Column(
-                      children: [
-                        const Text("DEBUG INFO:", style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text("Buscando en colección: 'citas'"),
-                        Text("pacienteId buscado: $patientId"),
-                      ],
-                    ),
-                  ),
                 ],
               ),
             );

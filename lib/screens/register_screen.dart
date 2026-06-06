@@ -13,6 +13,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passController = TextEditingController();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+  final _edadController = TextEditingController();
 
   String _rolSeleccionado = 'PACIENTE';
   final AuthService _authService = AuthService();
@@ -39,6 +40,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // Decidimos qué función llamar según el modo
     if (_esRegistro) {
+      // Validar edad si es paciente
+      int? edad;
+      if (_rolSeleccionado == 'PACIENTE') {
+        if (_edadController.text.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Ingresa tu edad para ajustar la Inteligencia Artificial")),
+          );
+          Navigator.pop(context); // Cerrar loading
+          return;
+        }
+        edad = int.tryParse(_edadController.text);
+      }
+
       // MODO REGISTRO
       error = await _authService.registrarUsuario(
         email: _emailController.text.trim(),
@@ -46,6 +60,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         nombre: _nameController.text.trim(),
         rol: _rolSeleccionado,
         telefono: _phoneController.text.trim(),
+        edad: edad,
       );
     } else {
       // MODO LOGIN
@@ -105,7 +120,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 const SizedBox(height: 10),
 
-                const SizedBox(height: 10),
+                if (_rolSeleccionado == 'PACIENTE') ...[
+                  TextField(
+                    controller: _edadController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: "Edad (Años)",
+                      prefixIcon: Icon(Icons.cake),
+                      helperText: "Usado para calibrar la Inteligencia Artificial",
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
               ],
 
               // 2. CAMPOS COMUNES (Email y Password)

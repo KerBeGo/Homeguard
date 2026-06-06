@@ -1,11 +1,16 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/alerts_model.dart';
 import 'local_notification_service.dart';
 import 'package:another_telephony/telephony.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter/foundation.dart';
-import 'dart:io';
+import 'package:shared_preferences/shared_preferences.dart';
+
+void debugPrint(String message) {
+  // ignore: avoid_print
+  print(message);
+}
 
 class AlertService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -14,15 +19,18 @@ class AlertService {
   Future<void> enviarAlerta({
     required String tipo,
     required String mensaje,
+    bool mostrarNotificacionLocal = true,
   }) async {
     final user = _auth.currentUser;
     if (user == null) return;
 
-    // Feedback local inmediato (Funciona aunque no haya internet)
-    await LocalNotificationService().sendInstantNotification(
-      'ALERTA DETECTADA: ${tipo.toUpperCase()}',
-      mensaje,
-    );
+    if (mostrarNotificacionLocal) {
+      // Feedback local inmediato (Funciona aunque no haya internet)
+      await LocalNotificationService().sendInstantNotification(
+        'ALERTA DETECTADA: ${tipo.toUpperCase()}',
+        mensaje,
+      );
+    }
 
     // Luego intentar sincronizar con la nube...
     final doc = await _firestore.collection('users').doc(user.uid).get();
@@ -54,36 +62,51 @@ class AlertService {
       // Si falla Firestore (posiblemente offline), intentamos SMS de respaldo
       await _enviarSmsDeEmergencia(tipo, mensaje, user.uid);
     }
-
-    // Feedback local para el paciente (Funciona offline)
-    await LocalNotificationService().sendInstantNotification(
-      'Alerta Detectada: ${tipo.toUpperCase()}',
-      mensaje,
-    );
   }
 
   Future<void> _enviarSmsDeEmergencia(String tipo, String mensaje, String uid) async {
     try {
-      // 1. Obtener datos del paciente localmente (si es posible)
-      final doc = await _firestore.collection('users').doc(uid).get(const GetOptions(source: Source.cache));
-      if (!doc.exists) return;
+      // 1. Obtener datos del paciente localmente
+      String? telefonoCuidador;
+      
+      try {
+        final doc = await _firestore.collection('users').doc(uid).get(const GetOptions(source: Source.cache));
+        if (doc.exists) {
+          final data = doc.data() as Map<String, dynamic>;
+          telefonoCuidador = data['cuidadorTelefono'];
+        }
+      } catch (_) {}
 
-      final data = doc.data() as Map<String, dynamic>;
-      final telefonoCuidador = data['cuidadorTelefono'];
+      // Fallback a SharedPreferences si no hay cache
+      if (telefonoCuidador == null || telefonoCuidador.isEmpty) {
+        final prefs = await SharedPreferences.getInstance();
+        telefonoCuidador = prefs.getString('cuidadorTelefono');
+      }
       
       if (telefonoCuidador == null || telefonoCuidador.isEmpty) {
         debugPrint("ERROR OFFLINE: No hay teléfono de cuidador guardado localmente.");
         return;
       }
 
-      // 2. Obtener ubicación actual
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
+      // 2. Obtener ubicación actual (con timeout para que no se quede pegado)
+      Position? position;
+      try {
+        position = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+        ).timeout(const Duration(seconds: 4));
+      } catch (e) {
+        // Fallback a la última ubicación conocida
+        debugPrint("Timeout de GPS, buscando última ubicación conocida...");
+        position = await Geolocator.getLastKnownPosition();
+      }
 
       // 3. Preparar mensaje
-      String googleMapsUrl = "https://www.google.com/maps?q=${position.latitude},${position.longitude}";
-      String smsMensaje = "HOMEGUARD ALERTA: ${tipo.toUpperCase()}\n$mensaje\nUbicación: $googleMapsUrl";
+      String ubicacionTexto = "Ubicación no disponible";
+      if (position != null) {
+        ubicacionTexto = "https://www.google.com/maps?q=${position.latitude},${position.longitude}";
+      }
+      
+      String smsMensaje = "HOMEGUARD ALERTA: ${tipo.toUpperCase()}\n$mensaje\nUbicación: $ubicacionTexto";
 
       // 4. Enviar SMS (Solo Android)
       if (Platform.isAndroid) {

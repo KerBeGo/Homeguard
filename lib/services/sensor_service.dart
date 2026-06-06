@@ -1,12 +1,16 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:sensors_plus/sensors_plus.dart';
-import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'alert_service.dart';
 import 'local_ia_service.dart';
 import 'sound_service.dart';
+
+void debugPrint(String message) {
+  // ignore: avoid_print
+  print(message);
+}
 
 class SensorService {
   static final SensorService _instance = SensorService._internal();
@@ -120,14 +124,14 @@ class SensorService {
   }
 
   /// Maneja las actualizaciones de audio enviadas por el SoundService
-  void handleAudioUpdate(double db) {
+  void handleAudioUpdate(double db, List<double> frequencies) {
     // Acumular datos para el dashboard (Nivel de ruido ambiental)
     if (db > 0) {
       _totalDb += db;
       _dbSamples++;
     }
 
-    if (_localAI.updateAudioLevel(db)) {
+    if (_localAI.updateAudioLevel(db, frequencies)) {
       _handleEmergencySound();
     }
   }
