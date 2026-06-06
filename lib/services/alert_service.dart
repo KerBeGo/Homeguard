@@ -117,25 +117,42 @@ class AlertService {
         position = await Geolocator.getLastKnownPosition();
       }
 
-      // 3. Preparar mensaje
-      String ubicacionTexto = "Ubicación no disponible";
+      // 3. Preparar mensaje SIN TILDES NI CARACTERES ESPECIALES
+      // Si un SMS tiene tildes (ej: ó, ñ), el límite baja de 160 a 70 caracteres
+      // y si lo supera, Android lo descarta silenciosamente.
+      String ubicacionTexto = "Ubicacion no disponible";
       if (position != null) {
         ubicacionTexto = "https://www.google.com/maps?q=${position.latitude},${position.longitude}";
       }
       
-      String smsMensaje = "HOMEGUARD ALERTA: ${tipo.toUpperCase()}\n$mensaje\nUbicación: $ubicacionTexto";
+      String mensajeLimpio = mensaje.replaceAll('á', 'a').replaceAll('é', 'e').replaceAll('í', 'i').replaceAll('ó', 'o').replaceAll('ú', 'u').replaceAll('ñ', 'n').replaceAll('¡', '').replaceAll('¿', '');
+      String smsMensaje = "HOMEGUARD ALERTA: ${tipo.toUpperCase()}\n$mensajeLimpio\nUbicacion: $ubicacionTexto";
 
-      // 4. Enviar SMS (Solo Android)
+      // Limitar a 150 caracteres por seguridad
+      if (smsMensaje.length > 150) {
+        smsMensaje = smsMensaje.substring(0, 150);
+      }
+
+      // 4. Formatear número venezolano a estándar internacional (+58)
+      // Android a veces falla al enrutar SMS programáticos con números locales (0412, 0424)
+      String numeroFormateado = telefonoCuidador.trim();
+      if (numeroFormateado.startsWith('04')) {
+        numeroFormateado = '+58${numeroFormateado.substring(1)}';
+      }
+
+      // 5. Enviar SMS (Solo Android)
       if (Platform.isAndroid) {
         final Telephony telephony = Telephony.instance;
         bool? permissionsGranted = await telephony.requestPhoneAndSmsPermissions;
         
         if (permissionsGranted == true) {
           await telephony.sendSms(
-            to: telefonoCuidador,
+            to: numeroFormateado,
             message: smsMensaje,
           );
-          debugPrint("SMS de emergencia enviado correctamente.");
+          debugPrint("SMS de emergencia enviado correctamente a $numeroFormateado con texto: $smsMensaje");
+        } else {
+          debugPrint("ERROR: Permisos de SMS denegados");
         }
       }
     } catch (e) {

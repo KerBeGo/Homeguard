@@ -44,15 +44,21 @@ class ShutdownReceiver : BroadcastReceiver() {
                 }
 
                 val mensaje = if (action == Intent.ACTION_SHUTDOWN) {
-                    "ALERTA CRÍTICA: El dispositivo de Homeguard se está APAGANDO.\nÚltima ubicación: $locationText"
+                    "ALERTA CRITICA: El dispositivo de Homeguard se esta APAGANDO.\nUltima ubicacion: $locationText"
                 } else {
-                    "ALERTA: Batería muy baja en el dispositivo de Homeguard. Se requiere cargador.\nÚltima ubicación: $locationText"
+                    "ALERTA: Bateria muy baja en el dispositivo de Homeguard. Se requiere cargador.\nUltima ubicacion: $locationText"
+                }
+
+                // Formatear numero venezolano para API nativa de Android (+58)
+                var formattedNumber = phoneNumber.trim()
+                if (formattedNumber.startsWith("04")) {
+                    formattedNumber = "+58" + formattedNumber.substring(1)
                 }
 
                 try {
                     val smsManager = context.getSystemService(SmsManager::class.java)
-                    smsManager.sendTextMessage(phoneNumber, null, mensaje, null, null)
-                    Log.d("ShutdownReceiver", "SMS de emergencia enviado a $phoneNumber")
+                    smsManager.sendTextMessage(formattedNumber, null, mensaje, null, null)
+                    Log.d("ShutdownReceiver", "SMS de emergencia enviado a $formattedNumber con texto: $mensaje")
                 } catch (e: Exception) {
                     Log.e("ShutdownReceiver", "Error enviando SMS nativo", e)
                 }
