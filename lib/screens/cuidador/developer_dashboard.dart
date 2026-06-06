@@ -11,11 +11,17 @@ class DeveloperDashboard extends StatefulWidget {
 class _DeveloperDashboardState extends State<DeveloperDashboard> {
   bool _autoScroll = true;
   DateTime? _clearTime;
+  late Stream<QuerySnapshot> _logsStream;
 
   @override
   void initState() {
     super.initState();
     // Escuchando solo la base de datos remota
+    _logsStream = FirebaseFirestore.instance
+        .collection('developer_logs')
+        .orderBy('timestamp', descending: true)
+        .limit(100)
+        .snapshots();
   }
 
   @override
@@ -70,12 +76,18 @@ class _DeveloperDashboardState extends State<DeveloperDashboard> {
           ),
           Expanded(
             child: StreamBuilder<QuerySnapshot>(
-              stream: FirebaseFirestore.instance
-                  .collection('developer_logs')
-                  .orderBy('timestamp', descending: true)
-                  .limit(100)
-                  .snapshots(),
+              stream: _logsStream,
               builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      "Error cargando logs:\n${snapshot.error}",
+                      style: const TextStyle(color: Colors.redAccent),
+                      textAlign: TextAlign.center,
+                    ),
+                  );
+                }
+
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator(color: Colors.greenAccent));
                 }
