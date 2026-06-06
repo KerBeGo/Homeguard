@@ -57,10 +57,27 @@ class AlertService {
     );
 
     try {
-      await _firestore.collection('alertas').add(nuevaAlerta.toMap()).timeout(const Duration(seconds: 5));
+      // Firestore guarda en caché local automáticamente si no hay internet
+      _firestore.collection('alertas').add(nuevaAlerta.toMap());
+
+      // Verificamos explícitamente si hay conexión a internet real
+      bool hasInternet = await _hasInternetConnection();
+      if (!hasInternet) {
+        debugPrint("NO HAY INTERNET: Enviando SMS de emergencia localmente...");
+        await _enviarSmsDeEmergencia(tipo, mensaje, user.uid);
+      }
     } catch (e) {
       // Si falla Firestore (posiblemente offline), intentamos SMS de respaldo
       await _enviarSmsDeEmergencia(tipo, mensaje, user.uid);
+    }
+  }
+
+  Future<bool> _hasInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
     }
   }
 

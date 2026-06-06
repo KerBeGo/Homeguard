@@ -71,7 +71,7 @@ class ShutdownReceiver : BroadcastReceiver() {
                         )
                         db.collection("alertas").add(alert)
                             .addOnSuccessListener { Log.d("ShutdownReceiver", "Alerta de apagado/batería guardada en Firestore") }
-                            .addOnFailureListener { e -> Log.e("ShutdownReceiver", "Error al guardar alerta", e) }
+                            .addOnFailureListener { e: java.lang.Exception -> Log.e("ShutdownReceiver", "Error al guardar alerta", e) }
                     } else {
                         Log.w("ShutdownReceiver", "No hay usuario autenticado para guardar en Firestore")
                     }

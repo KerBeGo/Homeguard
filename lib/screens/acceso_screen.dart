@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'register_screen.dart';
 import 'paciente/paciente_main_screen.dart';
 import 'cuidador/cuidador_main_screen.dart';
@@ -61,6 +62,14 @@ class AccesoScreen extends StatelessWidget {
                   } else {
                     LocalAIService().setSensitivityLevel("MEDIA"); // Fallback a MEDIA
                   }
+                }
+
+                // Guardar el teléfono del cuidador localmente para el ShutdownReceiver
+                String? cuidadorTelefono = userDoc['cuidadorTelefono'] as String?;
+                if (cuidadorTelefono != null && cuidadorTelefono.isNotEmpty) {
+                  SharedPreferences.getInstance().then((prefs) {
+                    prefs.setString('cuidadorTelefono', cuidadorTelefono);
+                  });
                 }
 
                 return const PacienteMainScreen();

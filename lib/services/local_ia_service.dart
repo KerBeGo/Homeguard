@@ -120,11 +120,10 @@ class LocalAIService {
     _sensitivityLevel = level.toUpperCase();
     if (_sensitivityLevel == "ALTA") {
       // Para personas con movilidad muy reducida (caídas suaves/cortas)
-      // Ajustado para no ser tan extremo con acciones cotidianas.
       _freeFallThreshold = 4.0; // Detecta caída libre rápido pero requiere algo de ingravidez
-      _moderateImpactThreshold = 18.0; // Ignora el simple hecho de soltarlo en la mesa (aprox 1.8G)
-      _impactThreshold = 22.0; // Impacto fuerte para personas mayores
-      _criticalImpactThreshold = 32.0;
+      _moderateImpactThreshold = 22.0; // Aumentado para evitar falsos positivos al sentarse en un auto
+      _impactThreshold = 26.0; // Impacto fuerte para personas mayores
+      _criticalImpactThreshold = 35.0;
       _loudNoiseThreshold = 88.0; // Ruido base elevado (Voz fuerte)
       _emergencySoundThreshold = 95.0; // Grito real (Voz normal llega a ~90dB)
       _shakeThreshold = 65.0; // Menor umbral: más fácil dar alerta de agitación para personas débiles
@@ -132,9 +131,9 @@ class LocalAIService {
     } else if (_sensitivityLevel == "BAJA") {
       // Para personas activas (evitar falsos positivos deportivos)
       _freeFallThreshold = 2.5; // Exige una caída libre más real
-      _moderateImpactThreshold = 28.0; // Ignora golpes moderados
-      _impactThreshold = 35.0;
-      _criticalImpactThreshold = 45.0;
+      _moderateImpactThreshold = 35.0; // Ignora golpes moderados
+      _impactThreshold = 42.0;
+      _criticalImpactThreshold = 55.0;
       _loudNoiseThreshold = 95.0;
       _emergencySoundThreshold = 105.0;
       _shakeThreshold = 95.0; // Mayor umbral: más difícil dar alerta falsa de agitación
@@ -142,9 +141,9 @@ class LocalAIService {
     } else {
       // MEDIA (Balanceada original)
       _freeFallThreshold = 3.5;
-      _moderateImpactThreshold = 25.0;
-      _impactThreshold = 30.0;
-      _criticalImpactThreshold = 40.0;
+      _moderateImpactThreshold = 28.0;
+      _impactThreshold = 33.0;
+      _criticalImpactThreshold = 45.0;
       _loudNoiseThreshold = 92.0;
       _emergencySoundThreshold = 100.0;
       _shakeThreshold = 80.0;
@@ -393,8 +392,8 @@ class LocalAIService {
     // A MENOS que haya un cambio drástico de orientación y quietud absoluta (caída corta).
     if (freeFallScore < 0.1) {
       if (orientationScore > 0.8 && postImpactScore > 0.8) {
-        if (_maxImpactMagnitude > 45.0) {
-          debugPrint("IA MULTIMODAL AVISO: Impacto de golpe muy alto sin caída libre. Bloqueado (posible golpe al colchón/mesa).");
+        if (_maxImpactMagnitude > 70.0) {
+          debugPrint("IA MULTIMODAL AVISO: Impacto de golpe extremo sin caída libre. Bloqueado (golpe muy violento a mesa).");
           jointProbability *= 0.2;
         } else {
           debugPrint("IA MULTIMODAL AVISO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída desde nivel bajo).");
@@ -481,8 +480,8 @@ class LocalAIService {
         // Excepción para caída corta: Si hay un cambio de postura muy claro y se queda muy quieto,
         // perdonamos la falta de caída libre prolongada.
         if (orientationScore > 0.8 && postImpactScore > 0.8) {
-          if (_maxImpactMagnitude > 45.0) {
-            debugPrint("IA EDGE (CNN) AVISO: Impacto de golpe muy alto sin caída libre. Bloqueado (posible golpe al colchón/mesa).");
+          if (_maxImpactMagnitude > 70.0) {
+            debugPrint("IA EDGE (CNN) AVISO: Impacto de golpe extremo sin caída libre. Bloqueado (golpe muy violento a mesa).");
             blockAlert = true;
           } else {
             debugPrint("IA EDGE (CNN) INFO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída corta).");
