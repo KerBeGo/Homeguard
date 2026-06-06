@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import '../../models/geofence_model.dart';
 import '../../services/geofence_service.dart';
 import 'create_geofence_screen.dart';
@@ -80,7 +80,7 @@ class _MapaScreenState extends State<MapaScreen> {
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () async {
                                 await _geofenceService.deleteGeofence(geofence.id);
-                                if (mounted) Navigator.pop(context);
+                                if (context.mounted) Navigator.pop(context);
                               },
                             ),
                           ],

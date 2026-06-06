@@ -12,20 +12,20 @@ class GeofenceMapSelector extends StatefulWidget {
   final Function(GeoPoint center, double radius, bool hasOverlap) onSelectionChanged;
 
   const GeofenceMapSelector({
-    Key? key,
+    super.key,
     required this.existingGeofences,
     this.geofenceToEdit,
     this.initialCenter,
     this.patientName,
     required this.onSelectionChanged,
-  }) : super(key: key);
+  });
 
   @override
   State<GeofenceMapSelector> createState() => _GeofenceMapSelectorState();
 }
 
 class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
-  GoogleMapController? _mapController;
+
   late LatLng _currentCenter;
   late double _currentRadius;
   bool _hasOverlap = false;
@@ -88,7 +88,7 @@ class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
             circleId: CircleId(geofence.id),
             center: LatLng(geofence.center.latitude, geofence.center.longitude),
             radius: geofence.radiusMeters,
-            fillColor: Colors.grey.withOpacity(0.3),
+            fillColor: Colors.grey.withValues(alpha: 0.3),
             strokeColor: Colors.grey,
             strokeWidth: 2,
           ),
@@ -102,7 +102,7 @@ class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
         circleId: const CircleId('current_selection'),
         center: _currentCenter,
         radius: _currentRadius,
-        fillColor: _hasOverlap ? Colors.red.withOpacity(0.4) : Colors.green.withOpacity(0.4),
+        fillColor: _hasOverlap ? Colors.red.withValues(alpha: 0.4) : Colors.green.withValues(alpha: 0.4),
         strokeColor: _hasOverlap ? Colors.red : Colors.green,
         strokeWidth: 2,
       ),
@@ -132,7 +132,7 @@ class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
                   target: _currentCenter,
                   zoom: 15.0,
                 ),
-                onMapCreated: (controller) => _mapController = controller,
+
                 onCameraMove: (position) {
                   setState(() {
                     _currentCenter = position.target;

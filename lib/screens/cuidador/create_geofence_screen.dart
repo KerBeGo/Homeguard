@@ -13,13 +13,13 @@ class CreateGeofenceScreen extends StatefulWidget {
   final GeofenceModel? geofenceToEdit;
 
   const CreateGeofenceScreen({
-    Key? key,
+    super.key,
     required this.patientId,
     required this.existingGeofences,
     this.initialCenter,
     this.patientName,
     this.geofenceToEdit,
-  }) : super(key: key);
+  });
 
   @override
   State<CreateGeofenceScreen> createState() => _CreateGeofenceScreenState();
@@ -78,7 +78,7 @@ class _CreateGeofenceScreenState extends State<CreateGeofenceScreen> {
 
       await _geofenceService.saveGeofence(geofence);
 
-      if (mounted) {
+      if (context.mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Geocerca creada exitosamente'), backgroundColor: Colors.green),
@@ -86,9 +86,11 @@ class _CreateGeofenceScreenState extends State<CreateGeofenceScreen> {
       }
     } catch (e) {
       setState(() { _isSaving = false; });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.red),
-      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al guardar: $e'), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 

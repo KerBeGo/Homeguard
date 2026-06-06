@@ -114,7 +114,7 @@ class GeofenceProvider with ChangeNotifier {
       );
       _processLocationUpdate(position);
     } catch (e) {
-      print('Error getting location for Geofence check: $e');
+      debugPrint('Error getting location for Geofence check: $e');
     }
   }
 

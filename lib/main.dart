@@ -18,7 +18,7 @@ void main() async {
   await dotenv.load(fileName: ".env");
   String apiKey =
       dotenv.env['FIREBASE_API_KEY_ANDROID'] ?? 'CLAVE_NO_ENCONTRADA';
-  print('  DEBUG: FIREBASE_API_KEY_ANDROID value: "$apiKey"');
+  debugPrint('  DEBUG: FIREBASE_API_KEY_ANDROID value: "$apiKey"');
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform.copyWith(apiKey: apiKey),
