@@ -33,6 +33,7 @@ class _PacienteMainScreenState extends State<PacienteMainScreen> {
       Permission.sms,
       Permission.phone,
       Permission.microphone,
+      Permission.notification,
     ].request();
 
     bool permanentlyDenied = false;
