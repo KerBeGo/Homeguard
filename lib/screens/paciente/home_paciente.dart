@@ -281,13 +281,23 @@ class _HomePacienteState extends State<HomePaciente> {
                   }
 
                   final connections = snapshot.data!.docs;
+                  final seenCaregivers = <String>{};
+                  final uniqueConnections = connections.where((doc) {
+                    final connData = doc.data() as Map<String, dynamic>;
+                    final cuidadorId = connData['cuidadorId'] as String?;
+                    if (cuidadorId == null) return false;
+                    if (seenCaregivers.contains(cuidadorId)) return false;
+                    seenCaregivers.add(cuidadorId);
+                    return true;
+                  }).toList();
+
                   return ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: connections.length,
+                    itemCount: uniqueConnections.length,
                     itemBuilder: (context, index) {
                       final connData =
-                          connections[index].data() as Map<String, dynamic>;
+                          uniqueConnections[index].data() as Map<String, dynamic>;
                       final cuidadorId = connData['cuidadorId'] as String?;
                       if (cuidadorId == null) return const SizedBox.shrink();
 
