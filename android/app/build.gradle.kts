@@ -83,6 +83,11 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     // Si necesitas la de kotlin (opcional si ya funciona)
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.0")
+    
+    // Dependencias nativas de Firebase para ShutdownReceiver
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-firestore")
 }
 
 // Tarea para generar google-services.json desde .env automáticamente

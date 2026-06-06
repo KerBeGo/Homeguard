@@ -44,15 +44,29 @@ class ShutdownReceiver : BroadcastReceiver() {
                 }
 
                 val mensaje = if (action == Intent.ACTION_SHUTDOWN) {
-                    "ALERTA CRÍTICA: El dispositivo de Homeguard se está APAGANDO.\nÚltima ubicación: $locationText"
+                    "ALERTA CRITICA: El dispositivo de Homeguard se esta APAGANDO.\nUltima ubicacion: $locationText"
                 } else {
-                    "ALERTA: Batería muy baja en el dispositivo de Homeguard. Se requiere cargador.\nÚltima ubicación: $locationText"
+                    "ALERTA: Bateria muy baja en el dispositivo de Homeguard. Se requiere cargador.\nUltima ubicacion: $locationText"
+                }
+
+                // Formatear numero venezolano para API nativa de Android (+58)
+                var formattedNumber = phoneNumber.trim()
+                if (formattedNumber.startsWith("04")) {
+                    formattedNumber = "+58" + formattedNumber.substring(1)
                 }
 
                 try {
-                    val smsManager = context.getSystemService(SmsManager::class.java)
-                    smsManager.sendTextMessage(phoneNumber, null, mensaje, null, null)
-                    Log.d("ShutdownReceiver", "SMS de emergencia enviado a $phoneNumber")
+                    val smsManager = SmsManager.getDefault()
+                    smsManager.sendTextMessage(formattedNumber, null, mensaje, null, null)
+                    Log.d("ShutdownReceiver", "SMS de emergencia enviado a $formattedNumber con texto: $mensaje")
+                    
+                    // IMPORTANTE: Pausar el hilo unos segundos para darle tiempo a la antena
+                    // del celular de enviar el SMS antes de que el OS corte la energía.
+                    if (action == Intent.ACTION_SHUTDOWN) {
+                        Log.d("ShutdownReceiver", "Pausando 4 segundos para asegurar transmisión del SMS...")
+                        Thread.sleep(4000)
+                        Log.d("ShutdownReceiver", "Pausa terminada.")
+                    }
                 } catch (e: Exception) {
                     Log.e("ShutdownReceiver", "Error enviando SMS nativo", e)
                 }
@@ -71,7 +85,7 @@ class ShutdownReceiver : BroadcastReceiver() {
                         )
                         db.collection("alertas").add(alert)
                             .addOnSuccessListener { Log.d("ShutdownReceiver", "Alerta de apagado/batería guardada en Firestore") }
-                            .addOnFailureListener { e -> Log.e("ShutdownReceiver", "Error al guardar alerta", e) }
+                            .addOnFailureListener { e: java.lang.Exception -> Log.e("ShutdownReceiver", "Error al guardar alerta", e) }
                     } else {
                         Log.w("ShutdownReceiver", "No hay usuario autenticado para guardar en Firestore")
                     }

@@ -281,13 +281,23 @@ class _HomePacienteState extends State<HomePaciente> {
                   }
 
                   final connections = snapshot.data!.docs;
+                  final seenCaregivers = <String>{};
+                  final uniqueConnections = connections.where((doc) {
+                    final connData = doc.data() as Map<String, dynamic>;
+                    final cuidadorId = connData['cuidadorId'] as String?;
+                    if (cuidadorId == null) return false;
+                    if (seenCaregivers.contains(cuidadorId)) return false;
+                    seenCaregivers.add(cuidadorId);
+                    return true;
+                  }).toList();
+
                   return ListView.builder(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    itemCount: connections.length,
+                    itemCount: uniqueConnections.length,
                     itemBuilder: (context, index) {
                       final connData =
-                          connections[index].data() as Map<String, dynamic>;
+                          uniqueConnections[index].data() as Map<String, dynamic>;
                       final cuidadorId = connData['cuidadorId'] as String?;
                       if (cuidadorId == null) return const SizedBox.shrink();
 
@@ -402,6 +412,47 @@ class _HomePacienteState extends State<HomePaciente> {
                       onPressed: () => _sendAlert(
                         "zona_segura",
                         "El paciente ha salido de la zona segura",
+                      ),
+                    ),
+                    _buildAlertButton(
+                      context,
+                      label: "Test SMS",
+                      icon: Icons.sms,
+                      color: Colors.teal,
+                      onPressed: () async {
+                        try {
+                          await _alertService.forzarSmsDePrueba(
+                            "prueba",
+                            "Este es un mensaje de prueba forzado por SMS.",
+                          );
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text("Intento de envío de SMS ejecutado"),
+                                backgroundColor: Colors.teal,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text("Error al probar SMS: $e"),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        }
+                      },
+                    ),
+                    _buildAlertButton(
+                      context,
+                      label: "Simular Caída",
+                      icon: Icons.personal_injury,
+                      color: Colors.orange,
+                      onPressed: () => _sendAlert(
+                        "caida",
+                        "¡ALERTA! Se ha simulado una caída manual para pruebas. Por favor verifica el estado del paciente.",
                       ),
                     ),
                   ],

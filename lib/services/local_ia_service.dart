@@ -4,6 +4,7 @@ import 'dart:async';
 import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void debugPrint(String message) {
   // ignore: avoid_print
@@ -51,6 +52,51 @@ class LocalAIService {
   LocalAIService._internal() {
     // Intentar inicializar el modelo de TensorFlow Lite al instanciar el servicio
     Future.microtask(() => initializeModel());
+    Future.microtask(() => _loadCalibration());
+  }
+
+  int _falsePositivesCount = 0;
+  bool _isTrainingMode = true; // Modo entrenamiento por defecto
+
+  bool get isTrainingMode => _isTrainingMode;
+
+  Future<void> _loadCalibration() async {
+    final prefs = await SharedPreferences.getInstance();
+    _falsePositivesCount = prefs.getInt('falsePositivesCount') ?? 0;
+    _isTrainingMode = prefs.getBool('isTrainingMode') ?? true;
+  }
+
+  Future<void> setTrainingMode(bool value) async {
+    _isTrainingMode = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isTrainingMode', value);
+    debugPrint("IA EDGE INFO: Modo entrenamiento ${value ? 'ACTIVADO' : 'DESACTIVADO'}");
+  }
+
+  void _applyCalibrationOffset() {
+    // Por cada falso positivo reportado, el sistema se hace un poco más "duro"
+    // Máximo 15 niveles de endurecimiento (aprox 30% más duro).
+    int offsetLevel = _falsePositivesCount;
+    if (offsetLevel > 15) offsetLevel = 15;
+    
+    double multiplier = 1.0 + (offsetLevel * 0.02); // +2% por cada falso positivo
+    
+    _moderateImpactThreshold *= multiplier;
+    _impactThreshold *= multiplier;
+    _criticalImpactThreshold *= multiplier;
+    _shakeThreshold *= multiplier;
+    
+    debugPrint("IA EDGE INFO: Aprendizaje Activo Aplicado. Multiplicador de impacto: ${multiplier.toStringAsFixed(2)}x (Basado en $_falsePositivesCount correcciones).");
+  }
+
+  void reportFalsePositive(String tipo) async {
+    _falsePositivesCount++;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('falsePositivesCount', _falsePositivesCount);
+    
+    debugPrint("IA EDGE LEARNING: Falso positivo de tipo '$tipo' reportado por el usuario. Re-calibrando umbrales...");
+    // Volver a aplicar los niveles base y luego el nuevo offset
+    setSensitivityLevel(_sensitivityLevel);
   }
 
   // Stream de logs para el Dashboard del Desarrollador
@@ -120,36 +166,37 @@ class LocalAIService {
     _sensitivityLevel = level.toUpperCase();
     if (_sensitivityLevel == "ALTA") {
       // Para personas con movilidad muy reducida (caídas suaves/cortas)
-      // Ajustado para no ser tan extremo con acciones cotidianas.
-      _freeFallThreshold = 4.0; // Detecta caída libre rápido pero requiere algo de ingravidez
-      _moderateImpactThreshold = 18.0; // Ignora el simple hecho de soltarlo en la mesa (aprox 1.8G)
-      _impactThreshold = 22.0; // Impacto fuerte para personas mayores
-      _criticalImpactThreshold = 32.0;
-      _loudNoiseThreshold = 88.0; // Ruido base elevado (Voz fuerte)
-      _emergencySoundThreshold = 95.0; // Grito real (Voz normal llega a ~90dB)
-      _shakeThreshold = 65.0; // Menor umbral: más fácil dar alerta de agitación para personas débiles
+      _freeFallThreshold = 4.0; 
+      _moderateImpactThreshold = 14.0; // Muy sensible
+      _impactThreshold = 18.0; 
+      _criticalImpactThreshold = 25.0;
+      _loudNoiseThreshold = 88.0; 
+      _emergencySoundThreshold = 95.0; 
+      _shakeThreshold = 25.0; // Muy fácil dar alerta de agitación
       debugPrint("IA EDGE INFO: Sensibilidad configurada a ALTA. Umbrales ajustados para mayor detección.");
     } else if (_sensitivityLevel == "BAJA") {
-      // Para personas activas (evitar falsos positivos deportivos)
-      _freeFallThreshold = 2.5; // Exige una caída libre más real
-      _moderateImpactThreshold = 28.0; // Ignora golpes moderados
-      _impactThreshold = 35.0;
+      // Para personas activas
+      _freeFallThreshold = 2.5; 
+      _moderateImpactThreshold = 25.0; 
+      _impactThreshold = 30.0;
       _criticalImpactThreshold = 45.0;
       _loudNoiseThreshold = 95.0;
       _emergencySoundThreshold = 105.0;
-      _shakeThreshold = 95.0; // Mayor umbral: más difícil dar alerta falsa de agitación
+      _shakeThreshold = 60.0; 
       debugPrint("IA EDGE INFO: Sensibilidad configurada a BAJA. Umbrales ajustados para evitar falsos positivos.");
     } else {
-      // MEDIA (Balanceada original)
+      // MEDIA (Balanceada, ajustada para pruebas en cama)
       _freeFallThreshold = 3.5;
-      _moderateImpactThreshold = 25.0;
-      _impactThreshold = 30.0;
-      _criticalImpactThreshold = 40.0;
+      _moderateImpactThreshold = 18.0; // Reducido para detectar golpes en colchón
+      _impactThreshold = 22.0;
+      _criticalImpactThreshold = 30.0;
       _loudNoiseThreshold = 92.0;
       _emergencySoundThreshold = 100.0;
-      _shakeThreshold = 80.0;
+      _shakeThreshold = 35.0; // Reducido para detectar sacudidas manuales
       debugPrint("IA EDGE INFO: Sensibilidad configurada a MEDIA. Umbrales balanceados.");
     }
+    
+    _applyCalibrationOffset();
   }
 
   /// Carga e inicializa el modelo Edge AI (.tflite) desde los assets locales
@@ -393,8 +440,8 @@ class LocalAIService {
     // A MENOS que haya un cambio drástico de orientación y quietud absoluta (caída corta).
     if (freeFallScore < 0.1) {
       if (orientationScore > 0.8 && postImpactScore > 0.8) {
-        if (_maxImpactMagnitude > 45.0) {
-          debugPrint("IA MULTIMODAL AVISO: Impacto de golpe muy alto sin caída libre. Bloqueado (posible golpe al colchón/mesa).");
+        if (_maxImpactMagnitude > 70.0) {
+          debugPrint("IA MULTIMODAL AVISO: Impacto de golpe extremo sin caída libre. Bloqueado (golpe muy violento a mesa).");
           jointProbability *= 0.2;
         } else {
           debugPrint("IA MULTIMODAL AVISO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída desde nivel bajo).");
@@ -481,8 +528,8 @@ class LocalAIService {
         // Excepción para caída corta: Si hay un cambio de postura muy claro y se queda muy quieto,
         // perdonamos la falta de caída libre prolongada.
         if (orientationScore > 0.8 && postImpactScore > 0.8) {
-          if (_maxImpactMagnitude > 45.0) {
-            debugPrint("IA EDGE (CNN) AVISO: Impacto de golpe muy alto sin caída libre. Bloqueado (posible golpe al colchón/mesa).");
+          if (_maxImpactMagnitude > 70.0) {
+            debugPrint("IA EDGE (CNN) AVISO: Impacto de golpe extremo sin caída libre. Bloqueado (golpe muy violento a mesa).");
             blockAlert = true;
           } else {
             debugPrint("IA EDGE (CNN) INFO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída corta).");

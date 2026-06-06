@@ -23,13 +23,36 @@ class ConnectionService {
       }
 
       final pacienteDoc = querySnapshot.docs.first;
-      // final pacienteData = pacienteDoc.data(); // Unused
 
-      // (Opcional) Verificar si ya tiene cuidador asignado, si esa es una regla de negocio.
-      // Por ahora permitimos re-vincular o tener múltiples cuidadores según tu lógica,
-      // pero el código original sobrescribía 'cuidadorId'.
+      // 2. Verificar duplicados
+      final duplicateCheck = await _firestore.collection('connections')
+          .where('cuidadorId', isEqualTo: uidCuidador)
+          .where('pacienteId', isEqualTo: pacienteDoc.id)
+          .get();
+      
+      if (duplicateCheck.docs.isNotEmpty) {
+        throw Exception("Ya estás vinculado con este paciente.");
+      }
 
-      // 2. Crear documento en la colección 'connections'
+      // 3. Verificar límite de pacientes por cuidador (Máximo 5)
+      final caregiverPatients = await _firestore.collection('connections')
+          .where('cuidadorId', isEqualTo: uidCuidador)
+          .get();
+          
+      if (caregiverPatients.docs.length >= 5) {
+        throw Exception("Has alcanzado el límite máximo de 5 pacientes vinculados.");
+      }
+
+      // 4. Verificar límite de cuidadores por paciente (Máximo 5)
+      final patientCaregivers = await _firestore.collection('connections')
+          .where('pacienteId', isEqualTo: pacienteDoc.id)
+          .get();
+          
+      if (patientCaregivers.docs.length >= 5) {
+        throw Exception("Este paciente ya tiene el máximo de 5 cuidadores asignados.");
+      }
+
+      // 5. Crear documento en la colección 'connections'
       // Usamos una ID combinada o auto-generada.
       await _firestore.collection('connections').add({
         'cuidadorId': uidCuidador,
@@ -39,17 +62,17 @@ class ConnectionService {
         'status': 'active',
       });
 
-      // 3. Obtener el teléfono del cuidador para emergencias offline
+      // 6. Obtener el teléfono del cuidador para emergencias offline
       final cuidadorDoc = await _firestore.collection('users').doc(uidCuidador).get();
       final cuidadorTelefono = cuidadorDoc.exists ? (cuidadorDoc.data() as Map<String, dynamic>)['telefono'] : null;
 
-      // 4. Actualizar el documento del usuario (Legacy support / Optimización de lectura)
+      // 7. Actualizar el documento del usuario (Legacy support / Optimización de lectura)
       await _firestore.collection('users').doc(pacienteDoc.id).update({
         'cuidadorId': uidCuidador,
         'cuidadorTelefono': cuidadorTelefono,
       });
 
-      // 5. Guardar localmente para el ShutdownReceiver nativo
+      // 8. Guardar localmente para el ShutdownReceiver nativo
       if (cuidadorTelefono != null) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('cuidadorTelefono', cuidadorTelefono);

@@ -57,10 +57,27 @@ class AlertService {
     );
 
     try {
-      await _firestore.collection('alertas').add(nuevaAlerta.toMap()).timeout(const Duration(seconds: 5));
+      // Firestore guarda en caché local automáticamente si no hay internet
+      _firestore.collection('alertas').add(nuevaAlerta.toMap());
+
+      // Verificamos explícitamente si hay conexión a internet real
+      bool hasInternet = await _hasInternetConnection();
+      if (!hasInternet) {
+        debugPrint("NO HAY INTERNET: Enviando SMS de emergencia localmente...");
+        await _enviarSmsDeEmergencia(tipo, mensaje, user.uid);
+      }
     } catch (e) {
       // Si falla Firestore (posiblemente offline), intentamos SMS de respaldo
       await _enviarSmsDeEmergencia(tipo, mensaje, user.uid);
+    }
+  }
+
+  Future<bool> _hasInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('google.com');
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -100,29 +117,63 @@ class AlertService {
         position = await Geolocator.getLastKnownPosition();
       }
 
-      // 3. Preparar mensaje
-      String ubicacionTexto = "Ubicación no disponible";
+      // 3. Preparar mensaje SIN TILDES NI CARACTERES ESPECIALES
+      // Si un SMS tiene tildes (ej: ó, ñ), el límite baja de 160 a 70 caracteres
+      // y si lo supera, Android lo descarta silenciosamente.
+      String ubicacionTexto = "Ubicacion no disponible";
       if (position != null) {
         ubicacionTexto = "https://www.google.com/maps?q=${position.latitude},${position.longitude}";
       }
       
-      String smsMensaje = "HOMEGUARD ALERTA: ${tipo.toUpperCase()}\n$mensaje\nUbicación: $ubicacionTexto";
+      String mensajeLimpio = mensaje.replaceAll('á', 'a').replaceAll('é', 'e').replaceAll('í', 'i').replaceAll('ó', 'o').replaceAll('ú', 'u').replaceAll('ñ', 'n').replaceAll('¡', '').replaceAll('¿', '');
+      String smsMensaje = "HOMEGUARD ALERTA: ${tipo.toUpperCase()}\n$mensajeLimpio\nUbicacion: $ubicacionTexto";
 
-      // 4. Enviar SMS (Solo Android)
+      // Limitar a 150 caracteres por seguridad
+      if (smsMensaje.length > 150) {
+        smsMensaje = smsMensaje.substring(0, 150);
+      }
+
+      // 4. Formatear número venezolano a estándar internacional (+58)
+      // Android a veces falla al enrutar SMS programáticos con números locales (0412, 0424)
+      String numeroFormateado = telefonoCuidador.trim();
+      if (numeroFormateado.startsWith('04')) {
+        numeroFormateado = '+58${numeroFormateado.substring(1)}';
+      }
+
+      // 5. Enviar SMS (Solo Android)
       if (Platform.isAndroid) {
         final Telephony telephony = Telephony.instance;
         bool? permissionsGranted = await telephony.requestPhoneAndSmsPermissions;
         
         if (permissionsGranted == true) {
           await telephony.sendSms(
-            to: telefonoCuidador,
+            to: numeroFormateado,
             message: smsMensaje,
           );
-          debugPrint("SMS de emergencia enviado correctamente.");
+          debugPrint("SMS de emergencia enviado correctamente a $numeroFormateado con texto: $smsMensaje");
+        } else {
+          debugPrint("ERROR: Permisos de SMS denegados");
         }
       }
     } catch (e) {
       debugPrint("ERROR AL ENVIAR SMS DE EMERGENCIA: $e");
+    }
+  }
+
+  Future<void> forzarSmsDePrueba(String tipo, String mensaje) async {
+    final user = _auth.currentUser;
+    if (user != null) {
+      debugPrint("Forzando envío de SMS de prueba...");
+      
+      // Mostrar notificación local al paciente para confirmar la acción
+      await LocalNotificationService().sendInstantNotification(
+        'PRUEBA DE SMS',
+        'Enviando mensaje de emergencia por SMS a tu cuidador...',
+      );
+      
+      await _enviarSmsDeEmergencia(tipo, mensaje, user.uid);
+    } else {
+      debugPrint("Error forzando SMS: Usuario no logueado");
     }
   }
 }

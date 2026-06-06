@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'alert_service.dart';
+import 'alert_manager_service.dart';
 import 'local_ia_service.dart';
 import 'sound_service.dart';
 
@@ -18,7 +18,6 @@ class SensorService {
   SensorService._internal();
 
   StreamSubscription<AccelerometerEvent>? _accelerometerSubscription;
-  final AlertService _alertService = AlertService();
   final LocalAIService _localAI = LocalAIService();
 
   bool _isMonitoring = false;
@@ -139,7 +138,7 @@ class SensorService {
   Future<void> _handleEmergencySound() async {
     debugPrint("¡GRITO O IMPACTO SONORO DETECTADO!");
     
-    await _alertService.enviarAlerta(
+    await AlertManagerService().triggerCountdown(
       tipo: 'sonido_emergencia',
       mensaje: 'ALERTA: Se ha detectado un sonido fuerte (posible grito o accidente) cerca del paciente.',
     );
@@ -148,7 +147,7 @@ class SensorService {
   Future<void> _handleFallDetected() async {
     debugPrint("¡CAÍDA CONFIRMADA POR IA LOCAL!");
     
-    await _alertService.enviarAlerta(
+    await AlertManagerService().triggerCountdown(
       tipo: 'caida',
       mensaje: '¡ALERTA! La IA local ha detectado una caída. Por favor verifica el estado del paciente.',
     );
@@ -157,7 +156,7 @@ class SensorService {
   Future<void> _handleMovementDetected() async {
     debugPrint("¡MOVIMIENTO AGRESIVO DETECTADO!");
     
-    await _alertService.enviarAlerta(
+    await AlertManagerService().triggerCountdown(
       tipo: 'movimiento',
       mensaje: 'Se ha detectado un movimiento brusco o agitación en el dispositivo del paciente.',
     );

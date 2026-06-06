@@ -40,6 +40,18 @@ class LocalNotificationService {
   }
 
   Future<void> sendInstantNotification(String title, String body) async {
+    await showNotification(
+      id: DateTime.now().millisecond,
+      title: title,
+      body: body,
+    );
+  }
+
+  Future<void> showNotification({
+    required int id,
+    required String title,
+    required String body,
+  }) async {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
       'alertas_criticas_v2',
@@ -58,13 +70,17 @@ class LocalNotificationService {
         NotificationDetails(android: androidPlatformChannelSpecifics);
 
     await flutterLocalNotificationsPlugin.show(
-      id: DateTime.now().millisecond, // ID único basado en tiempo
+      id: id,
       title: title,
       body: body,
       notificationDetails: platformChannelSpecifics,
       payload: 'alerta_caida',
     );
     debugPrint("ALERTA: Notificación enviada -> $title");
+  }
+
+  Future<void> cancelNotification(int id) async {
+    await flutterLocalNotificationsPlugin.cancel(id: id);
   }
 
   Future<void> scheduleReminders(dynamic dynamicMedications) async {
