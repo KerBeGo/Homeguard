@@ -435,6 +435,16 @@ class _HomePacienteState extends State<HomePaciente> {
                         }
                       },
                     ),
+                    _buildAlertButton(
+                      context,
+                      label: "Simular Caída",
+                      icon: Icons.personal_injury,
+                      color: Colors.orange,
+                      onPressed: () => _sendAlert(
+                        "caida",
+                        "¡ALERTA! Se ha simulado una caída manual para pruebas. Por favor verifica el estado del paciente.",
+                      ),
+                    ),
                   ],
                 ),
               ),
