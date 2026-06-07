@@ -903,9 +903,9 @@ class LocalAIService {
     }
 
     // Un solo impacto contra la cama suele durar de 1 a 3 muestras (muy rápido).
-    // Para considerarse agitación violenta sostenida, requerimos al menos 35 muestras
+    // Para considerarse agitación violenta sostenida por un humano, requerimos al menos 10 muestras
     // por encima de _shakeThreshold m/s² en el último segundo.
-    if (highAccelerationCount >= 35) {
+    if (highAccelerationCount >= 10) {
       addLog("IA MULTIMODAL: ¡AGITACIÓN VIOLENTA DETECTADA! (Muestras altas=$highAccelerationCount en el último segundo)");
       return true;
     }
