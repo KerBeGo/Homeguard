@@ -908,6 +908,9 @@ class LocalAIService {
     if (highAccelerationCount >= 10) {
       addLog("IA MULTIMODAL: ¡AGITACIÓN VIOLENTA DETECTADA! (Muestras altas=$highAccelerationCount en el último segundo)");
       return true;
+    } else if (highAccelerationCount >= 3) {
+      // Mostrar al desarrollador que estamos detectando la agitación parcial
+      addLog("IA MULTIMODAL: Analizando posible agitación... (Muestras altas=$highAccelerationCount/10)");
     }
     return false;
   }
