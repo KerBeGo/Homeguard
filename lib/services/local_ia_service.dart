@@ -70,7 +70,7 @@ class LocalAIService {
     _isTrainingMode = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isTrainingMode', value);
-    debugPrint("IA EDGE INFO: Modo entrenamiento ${value ? 'ACTIVADO' : 'DESACTIVADO'}");
+    addLog("IA EDGE INFO: Modo entrenamiento ${value ? 'ACTIVADO' : 'DESACTIVADO'}");
   }
 
   void _applyCalibrationOffset() {
@@ -86,7 +86,7 @@ class LocalAIService {
     _criticalImpactThreshold *= multiplier;
     _shakeThreshold *= multiplier;
     
-    debugPrint("IA EDGE INFO: Aprendizaje Activo Aplicado. Multiplicador de impacto: ${multiplier.toStringAsFixed(2)}x (Basado en $_falsePositivesCount correcciones).");
+    addLog("IA EDGE INFO: Aprendizaje Activo Aplicado. Multiplicador de impacto: ${multiplier.toStringAsFixed(2)}x (Basado en $_falsePositivesCount correcciones).");
   }
 
   void reportFalsePositive(String tipo) async {
@@ -94,7 +94,7 @@ class LocalAIService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('falsePositivesCount', _falsePositivesCount);
     
-    debugPrint("IA EDGE LEARNING: Falso positivo de tipo '$tipo' reportado por el usuario. Re-calibrando umbrales...");
+    addLog("IA EDGE LEARNING: Falso positivo de tipo '$tipo' reportado por el usuario. Re-calibrando umbrales...");
     // Volver a aplicar los niveles base y luego el nuevo offset
     setSensitivityLevel(_sensitivityLevel);
   }
@@ -122,7 +122,7 @@ class LocalAIService {
         'timestamp': FieldValue.serverTimestamp(),
         'uid': user.uid,
       }).then((_) {}, onError: (e) {
-        // Ignorar el error de subida silenciosamente para no detener el flujo local
+        debugPrint("IA EDGE ERROR AL SUBIR LOG A FIREBASE: $e");
       });
     }
   }
@@ -173,7 +173,7 @@ class LocalAIService {
       _loudNoiseThreshold = 88.0; 
       _emergencySoundThreshold = 95.0; 
       _shakeThreshold = 18.0; // Muy fácil dar alerta de agitación (aprox 1.8 G)
-      debugPrint("IA EDGE INFO: Sensibilidad configurada a ALTA. Umbrales ajustados para mayor detección.");
+      addLog("IA EDGE INFO: Sensibilidad configurada a ALTA. Umbrales ajustados para mayor detección.");
     } else if (_sensitivityLevel == "BAJA") {
       // Para personas activas
       _freeFallThreshold = 2.5; 
@@ -183,7 +183,7 @@ class LocalAIService {
       _loudNoiseThreshold = 95.0;
       _emergencySoundThreshold = 105.0;
       _shakeThreshold = 45.0; // Muy duro (aprox 4.5 G)
-      debugPrint("IA EDGE INFO: Sensibilidad configurada a BAJA. Umbrales ajustados para evitar falsos positivos.");
+      addLog("IA EDGE INFO: Sensibilidad configurada a BAJA. Umbrales ajustados para evitar falsos positivos.");
     } else {
       // MEDIA (Balanceada, ajustada para pruebas en cama)
       _freeFallThreshold = 3.5;
@@ -193,7 +193,7 @@ class LocalAIService {
       _loudNoiseThreshold = 92.0;
       _emergencySoundThreshold = 100.0;
       _shakeThreshold = 28.0; // Reducido para detectar sacudidas manuales reales (aprox 2.8 G)
-      debugPrint("IA EDGE INFO: Sensibilidad configurada a MEDIA. Umbrales balanceados.");
+      addLog("IA EDGE INFO: Sensibilidad configurada a MEDIA. Umbrales balanceados.");
     }
     
     _applyCalibrationOffset();
@@ -202,25 +202,25 @@ class LocalAIService {
   /// Carga e inicializa el modelo Edge AI (.tflite) desde los assets locales
   Future<void> initializeModel() async {
     try {
-      debugPrint("IA EDGE: Intentando cargar modelo TFLite desde $_modelAssetPath...");
+      addLog("IA EDGE: Intentando cargar modelo TFLite desde $_modelAssetPath...");
       _interpreter = await tfl.Interpreter.fromAsset(_modelAssetPath);
       _isModelLoaded = true;
-      debugPrint("IA EDGE: ¡Modelo neuronal de Fusión Intermedia cargado correctamente!");
+      addLog("IA EDGE: ¡Modelo neuronal de Fusión Intermedia cargado correctamente!");
       
       // Depuración de las dimensiones esperadas de los tensores
       final inputTensors = _interpreter!.getInputTensors();
       for (int i = 0; i < inputTensors.length; i++) {
-        debugPrint("IA EDGE: Input Tensor $i: Name=${inputTensors[i].name}, Shape=${inputTensors[i].shape}, Type=${inputTensors[i].type}");
+        addLog("IA EDGE: Input Tensor $i: Name=${inputTensors[i].name}, Shape=${inputTensors[i].shape}, Type=${inputTensors[i].type}");
       }
       final outputTensors = _interpreter!.getOutputTensors();
       for (int i = 0; i < outputTensors.length; i++) {
-        debugPrint("IA EDGE: Output Tensor $i: Name=${outputTensors[i].name}, Shape=${outputTensors[i].shape}, Type=${outputTensors[i].type}");
+        addLog("IA EDGE: Output Tensor $i: Name=${outputTensors[i].name}, Shape=${outputTensors[i].shape}, Type=${outputTensors[i].type}");
       }
     } catch (e) {
       _isModelLoaded = false;
       _interpreter = null;
-      debugPrint("IA EDGE WARNING: No se pudo cargar el modelo TFLite ($e).");
-      debugPrint("IA EDGE INFO: Se usará el Motor de Fusión Heurístico de respaldo (100% operativo).");
+      addLog("IA EDGE WARNING: No se pudo cargar el modelo TFLite ($e).");
+      addLog("IA EDGE INFO: Se usará el Motor de Fusión Heurístico de respaldo (100% operativo).");
     }
   }
 
@@ -281,9 +281,9 @@ class LocalAIService {
             // Un impacto duro mecánico dura 1-2 muestras. Si dura más de 6 muestras, es muy probable que sea un grito real simultáneo.
             if (loudSamplesCount < 6) {
               confirmScream = false;
-              debugPrint("IA MULTIMODAL: Sonido de emergencia con alta probabilidad (${(screamProbability * 100).toStringAsFixed(1)}%, dB: ${peakDb.toStringAsFixed(1)}) detectado, pero ignorado por coincidencia con impacto físico (falso grito causado por golpe). Muestras altas: $loudSamplesCount");
+              addLog("IA MULTIMODAL: Sonido de emergencia con alta probabilidad (${(screamProbability * 100).toStringAsFixed(1)}%, dB: ${peakDb.toStringAsFixed(1)}) detectado, pero ignorado por coincidencia con impacto físico (falso grito causado por golpe). Muestras altas: $loudSamplesCount");
             } else {
-              debugPrint("IA MULTIMODAL: Sonido de emergencia coincide con impacto, pero duración sostenida confirma grito real (Muestras altas: $loudSamplesCount).");
+              addLog("IA MULTIMODAL: Sonido de emergencia coincide con impacto, pero duración sostenida confirma grito real (Muestras altas: $loudSamplesCount).");
             }
           }
 
@@ -293,12 +293,12 @@ class LocalAIService {
                 now.difference(_lastEmergencySoundTime!).inSeconds > 10) {
               isEmergency = true;
               _lastEmergencySoundTime = now;
-              debugPrint("IA MULTIMODAL: ¡SONIDO DE EMERGENCIA DETECTADO! (dB: ${peakDb.toStringAsFixed(1)}, Probabilidad: ${(screamProbability * 100).toStringAsFixed(1)}%)");
+              addLog("IA MULTIMODAL: ¡SONIDO DE EMERGENCIA DETECTADO! (dB: ${peakDb.toStringAsFixed(1)}, Probabilidad: ${(screamProbability * 100).toStringAsFixed(1)}%)");
             }
           }
         } else {
           // Registrar el falso positivo de grito con su probabilidad en consola
-          debugPrint("IA MULTIMODAL: Sonido de ${peakDb.toStringAsFixed(1)} dB ignorado por baja probabilidad de grito (${(screamProbability * 100).toStringAsFixed(1)}%). Falso positivo de grito.");
+          addLog("IA MULTIMODAL: Sonido de ${peakDb.toStringAsFixed(1)} dB ignorado por baja probabilidad de grito (${(screamProbability * 100).toStringAsFixed(1)}%). Falso positivo de grito.");
         }
       }
     }
@@ -321,7 +321,7 @@ class LocalAIService {
       _stateStartTime = now;
       _impactPeakTime = now;
       _maxImpactMagnitude = magnitude;
-      debugPrint("IA AVANZADA: ¡IMPACTO CRÍTICO DIRECTO REGISTRADO! (G=${magnitude.toStringAsFixed(1)})");
+      addLog("IA AVANZADA: ¡IMPACTO CRÍTICO DIRECTO REGISTRADO! (G=${magnitude.toStringAsFixed(1)})");
     }
 
     // 2. FUSIÓN DE SENSORES: Impacto moderado como disparo de evaluación
@@ -330,7 +330,7 @@ class LocalAIService {
       _stateStartTime = now;
       _impactPeakTime = now;
       _maxImpactMagnitude = magnitude;
-      debugPrint("IA AVANZADA: ¡POTENCIAL IMPACTO DE CAÍDA REGISTRADO! (G=${magnitude.toStringAsFixed(1)})");
+      addLog("IA AVANZADA: ¡POTENCIAL IMPACTO DE CAÍDA REGISTRADO! (G=${magnitude.toStringAsFixed(1)})");
     }
 
     switch (_currentState) {
@@ -339,14 +339,14 @@ class LocalAIService {
         if (magnitude < _freeFallThreshold) {
           _currentState = FallState.freeFallDetected;
           _stateStartTime = now;
-          debugPrint("IA AVANZADA: Fase 1 - Caída libre iniciada (G=${magnitude.toStringAsFixed(1)})");
+          addLog("IA AVANZADA: Fase 1 - Caída libre iniciada (G=${magnitude.toStringAsFixed(1)})");
         }
         break;
 
       case FallState.freeFallDetected:
         // Si pasa demasiado tiempo sin golpe, cancelar
         if (now.difference(_stateStartTime!).inMilliseconds > 1200) {
-          debugPrint("IA MULTIMODAL: Timeout en caída libre (G=${magnitude.toStringAsFixed(1)}), volviendo a buscar...");
+          addLog("IA MULTIMODAL: Timeout en caída libre (G=${magnitude.toStringAsFixed(1)}), volviendo a buscar...");
           _currentState = FallState.searching;
           return false;
         }
@@ -356,7 +356,7 @@ class LocalAIService {
           _stateStartTime = now;
           _impactPeakTime = now;
           _maxImpactMagnitude = magnitude;
-          debugPrint("IA MULTIMODAL: Fase 2 - ¡GOLPE TRAS CAÍDA LIBRE DETECTADO! (G=${magnitude.toStringAsFixed(1)})");
+          addLog("IA MULTIMODAL: Fase 2 - ¡GOLPE TRAS CAÍDA LIBRE DETECTADO! (G=${magnitude.toStringAsFixed(1)})");
         }
         break;
 
@@ -369,7 +369,7 @@ class LocalAIService {
 
         // Esperar a que pase la ventana de observación post-impacto (2.5 segundos)
         if (now.difference(_stateStartTime!).inMilliseconds >= _postImpactObservationMs) {
-          debugPrint("IA MULTIMODAL: Finalizada ventana de observación. Ejecutando Motor de Fusión Intermedia...");
+          addLog("IA MULTIMODAL: Finalizada ventana de observación. Ejecutando Motor de Fusión Intermedia...");
           
           bool isConfirmedFall = _evaluateIntermediateFusion(_impactPeakTime ?? _stateStartTime!);
           
@@ -406,10 +406,10 @@ class LocalAIService {
     // Si el modelo neuronal TFLite está cargado, lo prioriza
     if (_isModelLoaded && _interpreter != null) {
       try {
-        debugPrint("IA EDGE: Ejecutando inferencia con Red Neuronal Convolucional (1D-CNN + 2D-CNN)...");
+        addLog("IA EDGE: Ejecutando inferencia con Red Neuronal Convolucional (1D-CNN + 2D-CNN)...");
         return _evaluateCNNModel(impactTime);
       } catch (e) {
-        debugPrint("IA EDGE ERROR: Fallo al ejecutar la Red Neuronal ($e). Usando heurística de respaldo...");
+        addLog("IA EDGE ERROR: Fallo al ejecutar la Red Neuronal ($e). Usando heurística de respaldo...");
       }
     }
 
@@ -441,15 +441,15 @@ class LocalAIService {
     if (freeFallScore < 0.1) {
       if (orientationScore > 0.8 && postImpactScore > 0.8) {
         if (_maxImpactMagnitude > 70.0) {
-          debugPrint("IA MULTIMODAL AVISO: Impacto de golpe extremo sin caída libre. Bloqueado (golpe muy violento a mesa).");
+          addLog("IA MULTIMODAL AVISO: Impacto de golpe extremo sin caída libre. Bloqueado (golpe muy violento a mesa).");
           jointProbability *= 0.2;
         } else {
-          debugPrint("IA MULTIMODAL AVISO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída desde nivel bajo).");
+          addLog("IA MULTIMODAL AVISO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída desde nivel bajo).");
           // Penalización mínima
           jointProbability *= 0.9;
         }
       } else {
-        debugPrint("IA MULTIMODAL AVISO: Penalizando probabilidad por falta de caída libre (posible golpe estático).");
+        addLog("IA MULTIMODAL AVISO: Penalizando probabilidad por falta de caída libre (posible golpe estático).");
         jointProbability *= 0.4;
       }
     }
@@ -457,14 +457,14 @@ class LocalAIService {
     // Regla 1.5: Si el dispositivo experimentó ingravidez casi PERFECTA, fue lanzado (proyectil).
     // Una persona cayendo siempre ejerce algo de resistencia, no llega a 0.0 G puros.
     if (_isProjectileDrop(impactTime)) {
-      debugPrint("IA MULTIMODAL AVISO: Patrón de PROYECTIL detectado. El teléfono fue lanzado a una mesa/cama o cayó solo.");
+      addLog("IA MULTIMODAL AVISO: Patrón de PROYECTIL detectado. El teléfono fue lanzado a una mesa/cama o cayó solo.");
       jointProbability *= 0.1; // Suprimir por completo
     }
 
     // Regla 2: Una caída real cambia la postura del paciente de vertical a horizontal.
     // Si el cambio de orientación 3D es nulo (orientationScore == 0.0), se penaliza.
     if (orientationScore < 0.1) {
-      debugPrint("IA MULTIMODAL AVISO: Penalizando probabilidad por falta de cambio de postura angular.");
+      addLog("IA MULTIMODAL AVISO: Penalizando probabilidad por falta de cambio de postura angular.");
       jointProbability *= 0.4;
     }
 
@@ -479,9 +479,9 @@ class LocalAIService {
 
     bool isFall = jointProbability >= 0.65;
     if (isFall) {
-      debugPrint("IA MULTIMODAL: ¡CAÍDA HUMANA DETECTADA Y CONFIRMADA MEDIANTE FUSIÓN INTERMEDIA! (IPCH: ${(jointProbability * 100).toStringAsFixed(1)}%)");
+      addLog("IA MULTIMODAL: ¡CAÍDA HUMANA DETECTADA Y CONFIRMADA MEDIANTE FUSIÓN INTERMEDIA! (IPCH: ${(jointProbability * 100).toStringAsFixed(1)}%)");
     } else {
-      debugPrint("IA MULTIMODAL: Caída ignorada por baja probabilidad o salvaguarda física (IPCH: ${(jointProbability * 100).toStringAsFixed(1)}%). Falso positivo de caída.");
+      addLog("IA MULTIMODAL: Caída ignorada por baja probabilidad o salvaguarda física (IPCH: ${(jointProbability * 100).toStringAsFixed(1)}%). Falso positivo de caída.");
     }
 
     return isFall;
@@ -529,10 +529,10 @@ class LocalAIService {
         // perdonamos la falta de caída libre prolongada.
         if (orientationScore > 0.8 && postImpactScore > 0.8) {
           if (_maxImpactMagnitude > 70.0) {
-            debugPrint("IA EDGE (CNN) AVISO: Impacto de golpe extremo sin caída libre. Bloqueado (golpe muy violento a mesa).");
+            addLog("IA EDGE (CNN) AVISO: Impacto de golpe extremo sin caída libre. Bloqueado (golpe muy violento a mesa).");
             blockAlert = true;
           } else {
-            debugPrint("IA EDGE (CNN) INFO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída corta).");
+            addLog("IA EDGE (CNN) INFO: Falta de caída libre perdonada por postura y quietud absolutas (posible caída corta).");
           }
         } else {
           blockAlert = true;
@@ -541,20 +541,20 @@ class LocalAIService {
 
       // Proyectil Salvaguarda: Lanzar el teléfono a la cama/mesa genera gravedad cero pura.
       if (_isProjectileDrop(impactTime)) {
-        debugPrint("IA EDGE (CNN) AVISO: Patrón de PROYECTIL (Gravedad cero perfecta). El teléfono fue lanzado a una cama/mesa.");
+        addLog("IA EDGE (CNN) AVISO: Patrón de PROYECTIL (Gravedad cero perfecta). El teléfono fue lanzado a una cama/mesa.");
         blockAlert = true;
       }
 
       if (blockAlert) {
-        debugPrint("IA EDGE (CNN) AVISO: La red dio positivo, pero se bloqueó por salvaguarda física (FF: ${freeFallScore.toStringAsFixed(2)}, OR: ${orientationScore.toStringAsFixed(2)}, PI: ${postImpactScore.toStringAsFixed(2)}).");
+        addLog("IA EDGE (CNN) AVISO: La red dio positivo, pero se bloqueó por salvaguarda física (FF: ${freeFallScore.toStringAsFixed(2)}, OR: ${orientationScore.toStringAsFixed(2)}, PI: ${postImpactScore.toStringAsFixed(2)}).");
         isFall = false;
       }
     }
 
     if (isFall) {
-      debugPrint("IA EDGE (CNN): ¡CAÍDA CONFIRMADA POR RED NEURONAL MULTIMODAL CON INTERMEDIATE FUSION! (Probabilidad: ${(probability * 100).toStringAsFixed(1)}%)");
+      addLog("IA EDGE (CNN): ¡CAÍDA CONFIRMADA POR RED NEURONAL MULTIMODAL CON INTERMEDIATE FUSION! (Probabilidad: ${(probability * 100).toStringAsFixed(1)}%)");
     } else {
-      debugPrint("IA EDGE (CNN): Caída ignorada por baja probabilidad o salvaguarda física (Probabilidad: ${(probability * 100).toStringAsFixed(1)}%). Falso positivo de caída.");
+      addLog("IA EDGE (CNN): Caída ignorada por baja probabilidad o salvaguarda física (Probabilidad: ${(probability * 100).toStringAsFixed(1)}%). Falso positivo de caída.");
     }
 
     return isFall;
@@ -774,7 +774,7 @@ class LocalAIService {
     double angleRad = acos(cosTheta);
     double angleDeg = angleRad * (180 / pi);
 
-    debugPrint("IA CÁLCULO POSTURA: Cambio angular de orientación = ${angleDeg.toStringAsFixed(1)}°");
+    addLog("IA CÁLCULO POSTURA: Cambio angular de orientación = ${angleDeg.toStringAsFixed(1)}°");
 
     if (angleDeg > 40.0) {
       return 1.0;
@@ -809,7 +809,7 @@ class LocalAIService {
     }
     double stdDev = sqrt(varianceSum / magnitudes.length);
 
-    debugPrint("IA CÁLCULO ACTIVIDAD: Desviación estándar post-impacto = ${stdDev.toStringAsFixed(2)} m/s²");
+    addLog("IA CÁLCULO ACTIVIDAD: Desviación estándar post-impacto = ${stdDev.toStringAsFixed(2)} m/s²");
 
     if (stdDev > 4.0) {
       return 0.0;
@@ -836,7 +836,7 @@ class LocalAIService {
       }
     }
 
-    debugPrint("IA CÁLCULO AUDIO IMPACTO: Pico sonoro detectado = ${maxDb.toStringAsFixed(1)} dB");
+    addLog("IA CÁLCULO AUDIO IMPACTO: Pico sonoro detectado = ${maxDb.toStringAsFixed(1)} dB");
 
     if (maxDb > 75.0) {
       return 1.0;
@@ -871,7 +871,7 @@ class LocalAIService {
     }
     double stdDevDb = sqrt(varianceSum / dbLevels.length);
 
-    debugPrint("IA CÁLCULO VOCES: Promedio dB post = ${avgDb.toStringAsFixed(1)} dB (stdDev = ${stdDevDb.toStringAsFixed(2)})");
+    addLog("IA CÁLCULO VOCES: Promedio dB post = ${avgDb.toStringAsFixed(1)} dB (stdDev = ${stdDevDb.toStringAsFixed(2)})");
 
     if (avgDb >= 52.0 && avgDb <= 78.0) {
       if (stdDevDb > 2.0) {
@@ -906,7 +906,7 @@ class LocalAIService {
     // Para considerarse agitación violenta sostenida, requerimos al menos 35 muestras
     // por encima de _shakeThreshold m/s² en el último segundo.
     if (highAccelerationCount >= 35) {
-      debugPrint("IA MULTIMODAL: ¡AGITACIÓN VIOLENTA DETECTADA! (Muestras altas=$highAccelerationCount en el último segundo)");
+      addLog("IA MULTIMODAL: ¡AGITACIÓN VIOLENTA DETECTADA! (Muestras altas=$highAccelerationCount en el último segundo)");
       return true;
     }
     return false;
