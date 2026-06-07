@@ -42,6 +42,20 @@ class _DeveloperDashboardState extends State<DeveloperDashboard> {
             tooltip: _autoScroll ? 'Auto-scroll activo' : 'Auto-scroll pausado',
           ),
           IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: () {
+              setState(() {
+                // Forzar la recreación del stream para obtener datos frescos
+                _logsStream = FirebaseFirestore.instance
+                    .collection('developer_logs')
+                    .orderBy('timestamp', descending: true)
+                    .limit(100)
+                    .snapshots();
+              });
+            },
+            tooltip: 'Actualizar logs (forzar red)',
+          ),
+          IconButton(
             icon: const Icon(Icons.delete_sweep),
             onPressed: () {
               setState(() {
