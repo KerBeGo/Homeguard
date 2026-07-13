@@ -5,6 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/geofence_model.dart';
 import '../services/geofence_service.dart';
 import '../services/alert_service.dart' hide debugPrint;
+import '../services/tracking_service.dart';
 
 class GeofenceProvider with ChangeNotifier {
   final GeofenceService _geofenceService = GeofenceService();
@@ -16,7 +17,6 @@ class GeofenceProvider with ChangeNotifier {
   bool _isSafe = true;
   bool get isSafe => _isSafe;
 
-  StreamSubscription<Position>? _locationSubscription;
   StreamSubscription<List<GeofenceModel>>? _geofenceSubscription;
   Timer? _debounceTimer;
 
@@ -35,33 +35,11 @@ class GeofenceProvider with ChangeNotifier {
           _checkCurrentLocation();
         });
 
-    _startLocationTracking();
-  }
-
-  void _startLocationTracking() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) return;
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
-    }
-
-    if (permission == LocationPermission.deniedForever) return;
-
-    // Background Tracking configuraciones nativas sugeridas
-    LocationSettings locationSettings = const LocationSettings(
-      accuracy: LocationAccuracy.high,
-      distanceFilter: 5, // Notificar cuando haya cambio de 5 metros
-    );
-
-    _locationSubscription =
-        Geolocator.getPositionStream(locationSettings: locationSettings).listen(
-          (Position position) {
-            _processLocationUpdate(position);
-          },
-        );
+    // En lugar de iniciar un Geolocator stream paralelo y generar conflictos
+    // con la notificación persistente, nos enganchamos a TrackingService.
+    TrackingService().onLocationUpdate = (Position position) {
+      _processLocationUpdate(position);
+    };
   }
 
   void _processLocationUpdate(Position position) {
@@ -129,9 +107,9 @@ class GeofenceProvider with ChangeNotifier {
 
   @override
   void dispose() {
-    _locationSubscription?.cancel();
     _geofenceSubscription?.cancel();
     _debounceTimer?.cancel();
+    TrackingService().onLocationUpdate = null;
     super.dispose();
   }
 }

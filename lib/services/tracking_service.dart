@@ -32,6 +32,7 @@ class TrackingService {
   // Creamos un stream controller o notificador simple si se requiere, pero podemos
   // manejar las callbacks directas para la UI de HomePaciente.
   Function(String, bool)? onStatusChange;
+  Function(Position)? onLocationUpdate;
 
   Future<void> startMonitoring() async {
     if (_isTracking) {
@@ -113,6 +114,9 @@ class TrackingService {
         Geolocator.getPositionStream(locationSettings: locationSettings).listen(
           (Position position) {
             _updateLocation(user.uid, position);
+            if (onLocationUpdate != null) {
+              onLocationUpdate!(position);
+            }
           },
         );
 
