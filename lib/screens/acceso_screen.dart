@@ -64,13 +64,29 @@ class AccesoScreen extends StatelessWidget {
                   }
                 }
 
-                // Guardar el teléfono del cuidador localmente para el ShutdownReceiver
-                String? cuidadorTelefono = userDoc['cuidadorTelefono'] as String?;
-                if (cuidadorTelefono != null && cuidadorTelefono.isNotEmpty) {
-                  SharedPreferences.getInstance().then((prefs) {
+                // Guardar datos localmente para el ShutdownReceiver nativo
+                SharedPreferences.getInstance().then((prefs) {
+                  String? cuidadorTelefono = userDoc['cuidadorTelefono'] as String?;
+                  if (cuidadorTelefono != null && cuidadorTelefono.isNotEmpty) {
                     prefs.setString('cuidadorTelefono', cuidadorTelefono);
-                  });
-                }
+                  } else {
+                    prefs.remove('cuidadorTelefono');
+                  }
+
+                  String? cuidadorId = userDoc['cuidadorId'] as String?;
+                  if (cuidadorId != null && cuidadorId.isNotEmpty) {
+                    prefs.setString('cuidadorId', cuidadorId);
+                  } else {
+                    prefs.remove('cuidadorId');
+                  }
+
+                  String? pacienteNombre = userDoc['nombre'] as String?;
+                  if (pacienteNombre != null && pacienteNombre.isNotEmpty) {
+                    prefs.setString('pacienteNombre', pacienteNombre);
+                  } else {
+                    prefs.remove('pacienteNombre');
+                  }
+                });
 
                 return const PacienteMainScreen();
               }

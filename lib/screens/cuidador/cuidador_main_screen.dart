@@ -3,6 +3,7 @@ import 'home_cuidador.dart';
 import 'pacientes_of_cuidador.dart';
 import 'alertas_cuidador.dart';
 import 'perfil_cuidador.dart';
+import '../../services/notification_service.dart';
 
 class CuidadorMainScreen extends StatefulWidget {
   const CuidadorMainScreen({super.key});
@@ -13,6 +14,14 @@ class CuidadorMainScreen extends StatefulWidget {
 
 class _CuidadorMainScreenState extends State<CuidadorMainScreen> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize notification service to ensure FCM token is saved after login
+    // and permissions are requested from the caregiver.
+    NotificationService().initialize();
+  }
 
   // Lista de pantallas para el cuidador
   final List<Widget> _screens = [

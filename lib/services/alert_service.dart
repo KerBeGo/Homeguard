@@ -19,7 +19,7 @@ class AlertService {
   Future<void> enviarAlerta({
     required String tipo,
     required String mensaje,
-    bool mostrarNotificacionLocal = true,
+    bool mostrarNotificacionLocal = false,
   }) async {
     final user = _auth.currentUser;
     if (user == null) return;

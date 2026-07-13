@@ -16,6 +16,7 @@ void main() async {
 
   // Diagnóstico: Verificar si la API Key se está cargando correctamente
   await dotenv.load(fileName: ".env");
+
   String apiKey =
       dotenv.env['FIREBASE_API_KEY_ANDROID'] ?? 'CLAVE_NO_ENCONTRADA';
   // print('  DEBUG: FIREBASE_API_KEY_ANDROID value: "$apiKey"');

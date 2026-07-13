@@ -108,6 +108,8 @@ class ConnectionService {
       // 3. Limpiar localmente
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('cuidadorTelefono');
+      await prefs.remove('cuidadorId');
+      await prefs.remove('pacienteNombre');
     } catch (e) {
       rethrow;
     }

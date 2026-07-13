@@ -17,9 +17,11 @@ class ShutdownReceiver : BroadcastReceiver() {
         Log.d("ShutdownReceiver", "Acción detectada: $action")
 
         if (action == Intent.ACTION_SHUTDOWN || action == Intent.ACTION_BATTERY_LOW) {
-            // Intentar obtener el número de teléfono guardado por SharedPreferences de Flutter
+            // Intentar obtener los datos guardados por SharedPreferences de Flutter
             val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
             val phoneNumber = prefs.getString("flutter.cuidadorTelefono", null)
+            val cuidadorId = prefs.getString("flutter.cuidadorId", null)
+            val pacienteNombre = prefs.getString("flutter.pacienteNombre", "Paciente") ?: "Paciente"
 
             if (phoneNumber != null && phoneNumber.isNotEmpty()) {
                 // Obtener última ubicación conocida nativamente
@@ -44,9 +46,9 @@ class ShutdownReceiver : BroadcastReceiver() {
                 }
 
                 val mensaje = if (action == Intent.ACTION_SHUTDOWN) {
-                    "ALERTA CRITICA: El dispositivo de Homeguard se esta APAGANDO.\nUltima ubicacion: $locationText"
+                    "ALERTA CRITICA: El dispositivo de $pacienteNombre se esta APAGANDO.\nUltima ubicacion: $locationText"
                 } else {
-                    "ALERTA: Bateria muy baja en el dispositivo de Homeguard. Se requiere cargador.\nUltima ubicacion: $locationText"
+                    "ALERTA: Bateria muy baja en el dispositivo de $pacienteNombre. Se requiere cargador.\nUltima ubicacion: $locationText"
                 }
 
                 // Formatear numero venezolano para API nativa de Android (+58)
@@ -78,6 +80,8 @@ class ShutdownReceiver : BroadcastReceiver() {
                         val db = FirebaseFirestore.getInstance()
                         val alert = hashMapOf(
                             "pacienteId" to uid,
+                            "pacienteNombre" to pacienteNombre,
+                            "cuidadorId" to (cuidadorId ?: ""),
                             "tipo" to if (action == Intent.ACTION_SHUTDOWN) "apagado" else "bateria_baja",
                             "mensaje" to mensaje,
                             "timestamp" to FieldValue.serverTimestamp(),
