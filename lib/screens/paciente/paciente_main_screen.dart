@@ -22,22 +22,34 @@ class PacienteMainScreen extends StatefulWidget {
 class _PacienteMainScreenState extends State<PacienteMainScreen> {
   int _selectedIndex = 0;
   StreamSubscription? _medicationSubscription;
+  bool _isInitializing = true;
 
   @override
   void initState() {
     super.initState();
-    _requestPermissions();
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    await _requestPermissions();
     _startMedicationListener();
 
     final User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
+    if (user != null && mounted) {
       // Iniciar el monitoreo de ubicación en segundo plano
       Provider.of<GeofenceProvider>(context, listen: false).init(user.uid);
+    }
+    
+    if (mounted) {
+      setState(() {
+        _isInitializing = false;
+      });
     }
   }
 
   Future<void> _requestPermissions() async {
     Map<Permission, PermissionStatus> statuses = await [
+      Permission.location,
       Permission.sms,
       Permission.phone,
       Permission.microphone,
@@ -109,6 +121,14 @@ class _PacienteMainScreenState extends State<PacienteMainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isInitializing) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(color: Colors.blue),
+        ),
+      );
+    }
+    
     return Scaffold(
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(

@@ -42,14 +42,29 @@ class _HomePacienteState extends State<HomePaciente> {
     super.dispose();
   }
 
+  Future<void> _handleRefresh() async {
+    // Los datos principales (Firestore) se actualizan en tiempo real vía StreamBuilder.
+    // Añadimos un pequeño retraso para que el usuario aprecie el efecto visual de "recarga".
+    await Future.delayed(const Duration(milliseconds: 1200));
+    if (mounted) {
+      setState(() {
+        // Forzamos un repintado de la interfaz
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
+        child: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: Colors.blue,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Real-time Firestore Stats
@@ -490,6 +505,7 @@ class _HomePacienteState extends State<HomePaciente> {
             ],
           ),
         ),
+      ),
       ),
     );
   }
