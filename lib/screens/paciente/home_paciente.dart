@@ -32,7 +32,7 @@ class _HomePacienteState extends State<HomePaciente> {
     if (_trackingService.isTracking) {
       _isTracking = true;
     } else {
-      _trackingService.startMonitoring(); 
+      _trackingService.startMonitoring();
     }
   }
 
@@ -63,9 +63,12 @@ class _HomePacienteState extends State<HomePaciente> {
                   if (snapshot.hasData && snapshot.data!.data() != null) {
                     data = snapshot.data!.data() as Map<String, dynamic>;
                   }
-                  
+
                   final nombre = data['nombre'] ?? user.displayName;
-                  final nombreMostrar = (nombre != null && nombre.toString().trim().isNotEmpty) ? nombre : 'Usuario';
+                  final nombreMostrar =
+                      (nombre != null && nombre.toString().trim().isNotEmpty)
+                      ? nombre
+                      : 'Usuario';
 
                   final location = data['location'] as GeoPoint?;
                   final lat = location?.latitude.toStringAsFixed(4) ?? '--';
@@ -102,47 +105,67 @@ class _HomePacienteState extends State<HomePaciente> {
                               iconColor: Colors.blue,
                               title: "Ubicación",
                               value: _isTracking ? 'Activa' : 'Inactiva',
-                              subtitle: _isTracking 
-                                ? (data['address'] ?? '$lat, $lng') 
-                                : 'Desconocida',
+                              subtitle: _isTracking
+                                  ? (data['address'] ?? '$lat, $lng')
+                                  : 'Desconocida',
                               onTap: () {
                                 if (_isTracking) {
                                   showDialog(
                                     context: context,
                                     builder: (context) => AlertDialog(
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
                                       title: const Row(
                                         children: [
-                                          Icon(Icons.location_on, color: Colors.blue),
+                                          Icon(
+                                            Icons.location_on,
+                                            color: Colors.blue,
+                                          ),
                                           SizedBox(width: 10),
                                           Text("Ubicación Exacta"),
                                         ],
                                       ),
                                       content: Column(
                                         mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          const Text("Dirección:", style: TextStyle(fontWeight: FontWeight.bold)),
-                                          Text(data['address'] ?? "Calculando dirección..."),
+                                          const Text(
+                                            "Dirección:",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            data['address'] ??
+                                                "Calculando dirección...",
+                                          ),
                                           const SizedBox(height: 16),
-                                          const Text("Coordenadas:", style: TextStyle(fontWeight: FontWeight.bold)),
+                                          const Text(
+                                            "Coordenadas:",
+                                            style: TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
                                           Text("Latitud: $lat\nLongitud: $lng"),
                                         ],
                                       ),
                                       actions: [
                                         TextButton(
-                                          onPressed: () => Navigator.pop(context),
+                                          onPressed: () =>
+                                              Navigator.pop(context),
                                           child: const Text("Cerrar"),
                                         ),
-                                        ElevatedButton.icon(
-                                          icon: const Icon(Icons.map_outlined),
-                                          label: const Text("Ver en Google Maps"),
-                                          onPressed: () {
-                                            // Aquí podrías usar url_launcher en el futuro para abrir:
-                                            // 'https://www.google.com/maps/search/?api=1&query=$lat,$lng'
-                                            Navigator.pop(context);
-                                          },
-                                        ),
+                                        //     ElevatedButton.icon(
+                                        //       icon: const Icon(Icons.map_outlined),
+                                        //       label: const Text("Ver en Google Maps"),
+                                        //       onPressed: () {
+                                        //         // Aquí podrías usar url_launcher en el futuro para abrir:
+                                        //         // 'https://www.google.com/maps/search/?api=1&query=$lat,$lng'
+                                        //         Navigator.pop(context);
+                                        //       },
+                                        // ),
                                       ],
                                     ),
                                   );
@@ -198,7 +221,9 @@ class _HomePacienteState extends State<HomePaciente> {
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: const Color(0xFFE63946).withValues(alpha: 0.4),
+                              color: const Color(
+                                0xFFE63946,
+                              ).withValues(alpha: 0.4),
                               blurRadius: 25,
                               spreadRadius: 5,
                               offset: const Offset(0, 8),
@@ -297,7 +322,8 @@ class _HomePacienteState extends State<HomePaciente> {
                     itemCount: uniqueConnections.length,
                     itemBuilder: (context, index) {
                       final connData =
-                          uniqueConnections[index].data() as Map<String, dynamic>;
+                          uniqueConnections[index].data()
+                              as Map<String, dynamic>;
                       final cuidadorId = connData['cuidadorId'] as String?;
                       if (cuidadorId == null) return const SizedBox.shrink();
 
@@ -428,7 +454,9 @@ class _HomePacienteState extends State<HomePaciente> {
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text("Intento de envío de SMS ejecutado"),
+                                content: Text(
+                                  "Intento de envío de SMS ejecutado",
+                                ),
                                 backgroundColor: Colors.teal,
                               ),
                             );

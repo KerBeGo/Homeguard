@@ -13,7 +13,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passController = TextEditingController();
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _edadController = TextEditingController();
+  final _dobController = TextEditingController();
+  DateTime? _fechaNacimiento;
 
   String _rolSeleccionado = 'PACIENTE';
   final AuthService _authService = AuthService();
@@ -21,6 +22,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // ESTA ES LA CLAVE: Una variable para saber en qué modo estamos
   bool _esRegistro = false; // Empieza en false para mostrar LOGIN primero
+
+  Future<void> _selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: DateTime.now().subtract(const Duration(days: 365 * 65)), // Por defecto ~65 años
+      firstDate: DateTime(1900),
+      lastDate: DateTime.now(),
+    );
+    if (picked != null && picked != _fechaNacimiento) {
+      setState(() {
+        _fechaNacimiento = picked;
+        _dobController.text = "${picked.day}/${picked.month}/${picked.year}";
+      });
+    }
+  }
 
   void _submitForm() async {
     // Validaciones básicas
@@ -42,15 +58,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_esRegistro) {
       // Validar edad si es paciente
       int? edad;
+      String? fechaNacimientoStr;
       if (_rolSeleccionado == 'PACIENTE') {
-        if (_edadController.text.isEmpty) {
+        if (_fechaNacimiento == null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Ingresa tu edad para ajustar la Inteligencia Artificial")),
+            const SnackBar(content: Text("Ingresa tu fecha de nacimiento para ajustar la Inteligencia Artificial")),
           );
           Navigator.pop(context); // Cerrar loading
           return;
         }
-        edad = int.tryParse(_edadController.text);
+        
+        // Calcular edad
+        final now = DateTime.now();
+        edad = now.year - _fechaNacimiento!.year;
+        if (now.month < _fechaNacimiento!.month || 
+            (now.month == _fechaNacimiento!.month && now.day < _fechaNacimiento!.day)) {
+          edad--;
+        }
+        
+        // Formatear fecha para guardar
+        fechaNacimientoStr = "${_fechaNacimiento!.year}-${_fechaNacimiento!.month.toString().padLeft(2, '0')}-${_fechaNacimiento!.day.toString().padLeft(2, '0')}";
       }
 
       // MODO REGISTRO
@@ -61,6 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         rol: _rolSeleccionado,
         telefono: _phoneController.text.trim(),
         edad: edad,
+        fechaNacimiento: fechaNacimientoStr,
       );
     } else {
       // MODO LOGIN
@@ -122,10 +150,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 if (_rolSeleccionado == 'PACIENTE') ...[
                   TextField(
-                    controller: _edadController,
-                    keyboardType: TextInputType.number,
+                    controller: _dobController,
+                    readOnly: true,
+                    onTap: () => _selectDate(context),
                     decoration: const InputDecoration(
-                      labelText: "Edad (Años)",
+                      labelText: "Fecha de Nacimiento",
                       prefixIcon: Icon(Icons.cake),
                       helperText: "Usado para calibrar la Inteligencia Artificial",
                     ),

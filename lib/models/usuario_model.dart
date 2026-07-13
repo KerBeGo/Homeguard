@@ -7,6 +7,7 @@ class UsuarioModel {
   final String? fcmToken; // Opcional: Para notificaciones
   final String? telefono; // Opcional: Para alertas SMS
   final int? edad; // Opcional: Usado para calcular la sensibilidad de la IA
+  final String? fechaNacimiento; // Opcional: Fecha de nacimiento YYYY-MM-DD
 
   // Constructor
   UsuarioModel({
@@ -18,6 +19,7 @@ class UsuarioModel {
     this.fcmToken,
     this.telefono,
     this.edad,
+    this.fechaNacimiento,
   });
 
   // 1. Convertir de MAPA (JSON de Firebase) a OBJETO DART
@@ -32,6 +34,7 @@ class UsuarioModel {
       fcmToken: map['fcmToken'],
       telefono: map['telefono'],
       edad: map['edad'],
+      fechaNacimiento: map['fechaNacimiento'],
     );
   }
 
@@ -46,6 +49,7 @@ class UsuarioModel {
       'fcmToken': fcmToken,
       'telefono': telefono,
       'edad': edad,
+      'fechaNacimiento': fechaNacimiento,
     };
   }
 }

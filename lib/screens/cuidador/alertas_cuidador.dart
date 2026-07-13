@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_linkify/flutter_linkify.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AlertasCuidador extends StatelessWidget {
   const AlertasCuidador({super.key});
@@ -177,9 +179,16 @@ class AlertasCuidador extends StatelessWidget {
                     backgroundColor: color.withValues(alpha: 0.2),
                     child: Icon(icon, color: color),
                   ),
-                  title: Text(
-                    alertaData['mensaje'] ?? 'Nueva alerta',
+                  title: Linkify(
+                    onOpen: (link) async {
+                      final uri = Uri.parse(link.url);
+                      if (await canLaunchUrl(uri)) {
+                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                      }
+                    },
+                    text: alertaData['mensaje'] ?? 'Nueva alerta',
                     style: const TextStyle(fontWeight: FontWeight.bold),
+                    linkStyle: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline, fontWeight: FontWeight.normal),
                   ),
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

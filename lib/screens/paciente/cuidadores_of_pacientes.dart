@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../services/connection_service.dart';
 
 class CuidadoresDePaciente extends StatelessWidget {
   const CuidadoresDePaciente({super.key});
@@ -63,7 +62,8 @@ class CuidadoresDePaciente extends StatelessWidget {
           for (var doc in connections) {
             var data = doc.data() as Map<String, dynamic>;
             String cuidadorId = data['cuidadorId'] ?? '';
-            if (cuidadorId.isNotEmpty && !uniqueCuidadorIds.contains(cuidadorId)) {
+            if (cuidadorId.isNotEmpty &&
+                !uniqueCuidadorIds.contains(cuidadorId)) {
               uniqueCuidadorIds.add(cuidadorId);
               uniqueConnections.add(doc);
             }
@@ -73,7 +73,8 @@ class CuidadoresDePaciente extends StatelessWidget {
             padding: const EdgeInsets.all(16),
             itemCount: uniqueConnections.length,
             itemBuilder: (context, index) {
-              var connectionData = uniqueConnections[index].data() as Map<String, dynamic>;
+              var connectionData =
+                  uniqueConnections[index].data() as Map<String, dynamic>;
               String cuidadorId = connectionData['cuidadorId'] ?? '';
 
               return FutureBuilder<DocumentSnapshot>(
@@ -82,7 +83,8 @@ class CuidadoresDePaciente extends StatelessWidget {
                     .doc(cuidadorId)
                     .get(),
                 builder: (context, cuidadorSnapshot) {
-                  if (!cuidadorSnapshot.hasData || !cuidadorSnapshot.data!.exists) {
+                  if (!cuidadorSnapshot.hasData ||
+                      !cuidadorSnapshot.data!.exists) {
                     return const SizedBox.shrink(); // Cuidador eliminado
                   }
 
@@ -132,16 +134,16 @@ class CuidadoresDePaciente extends StatelessWidget {
                             subtitle: Text(cuidadorData['tipo'] ?? 'Cuidador'),
                           ),
                           const SizedBox(height: 10),
-                          ElevatedButton.icon(
-                            onPressed: () => _confirmarDesvinculacion(context, user.uid, cuidadorId),
-                            icon: const Icon(Icons.person_remove),
-                            label: const Text("Desvincular Cuidador"),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              minimumSize: const Size(double.infinity, 50),
-                            ),
-                          ),
+                          // ElevatedButton.icon(
+                          //   onPressed: () => _confirmarDesvinculacion(context, user.uid, cuidadorId),
+                          //   icon: const Icon(Icons.person_remove),
+                          //   label: const Text("Desvincular Cuidador"),
+                          //   style: ElevatedButton.styleFrom(
+                          //     backgroundColor: Colors.red,
+                          //     foregroundColor: Colors.white,
+                          //     minimumSize: const Size(double.infinity, 50),
+                          //   ),
+                          // ),
                         ],
                       ),
                     ),
@@ -155,29 +157,41 @@ class CuidadoresDePaciente extends StatelessWidget {
     );
   }
 
-  void _confirmarDesvinculacion(BuildContext context, String pacienteId, String cuidadorId) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("¿Desvincular Cuidador?"),
-        content: const Text("¿Estás seguro de que quieres desvincular a tu cuidador? Ya no podrá monitorear tu estado."),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Cancelar"),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              await ConnectionService().desvincularPaciente(pacienteId, cuidadorId);
-              if (context.mounted) {
-                Navigator.pop(context); // Cerrar dialog
-              }
-            },
-            child: const Text("Desvincular", style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
+  // void _confirmarDesvinculacion(
+  //   BuildContext context,
+  //   String pacienteId,
+  //   String cuidadorId,
+  // ) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text("¿Desvincular Cuidador?"),
+  //       content: const Text(
+  //         "¿Estás seguro de que quieres desvincular a tu cuidador? Ya no podrá monitorear tu estado.",
+  //       ),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: const Text("Cancelar"),
+  //         ),
+  //         ElevatedButton(
+  //           style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+  //           onPressed: () async {
+  //             await ConnectionService().desvincularPaciente(
+  //               pacienteId,
+  //               cuidadorId,
+  //             );
+  //             if (context.mounted) {
+  //               Navigator.pop(context); // Cerrar dialog
+  //             }
+  //           },
+  //           child: const Text(
+  //             "Desvincular",
+  //             style: TextStyle(color: Colors.white),
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 }
