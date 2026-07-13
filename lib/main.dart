@@ -18,7 +18,7 @@ void main() async {
   await dotenv.load(fileName: ".env");
   String apiKey =
       dotenv.env['FIREBASE_API_KEY_ANDROID'] ?? 'CLAVE_NO_ENCONTRADA';
-  debugPrint('  DEBUG: FIREBASE_API_KEY_ANDROID value: "$apiKey"');
+  // print('  DEBUG: FIREBASE_API_KEY_ANDROID value: "$apiKey"');
 
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform.copyWith(apiKey: apiKey),
@@ -28,9 +28,7 @@ void main() async {
 
   runApp(
     MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => GeofenceProvider()),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => GeofenceProvider())],
       child: const MyApp(),
     ),
   );

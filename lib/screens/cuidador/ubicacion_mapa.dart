@@ -27,10 +27,17 @@ class _MapaScreenState extends State<MapaScreen> {
     _mapController = controller;
   }
 
-  void _showGeofencesList(BuildContext context, List<GeofenceModel> geofences, GeoPoint? patientLocation, String patientName) {
+  void _showGeofencesList(
+    BuildContext context,
+    List<GeofenceModel> geofences,
+    GeoPoint? patientLocation,
+    String patientName,
+  ) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(16),
@@ -38,7 +45,10 @@ class _MapaScreenState extends State<MapaScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Zonas Seguras del Paciente', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const Text(
+                'Zonas Seguras del Paciente',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 10),
               if (geofences.isEmpty)
                 const Padding(
@@ -52,9 +62,14 @@ class _MapaScreenState extends State<MapaScreen> {
                     itemBuilder: (context, index) {
                       var geofence = geofences[index];
                       return ListTile(
-                        leading: const Icon(Icons.security, color: Colors.green),
+                        leading: const Icon(
+                          Icons.security,
+                          color: Colors.green,
+                        ),
                         title: Text(geofence.name),
-                        subtitle: Text('Radio: ${geofence.radiusMeters.toInt()}m'),
+                        subtitle: Text(
+                          'Radio: ${geofence.radiusMeters.toInt()}m',
+                        ),
                         trailing: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -79,7 +94,9 @@ class _MapaScreenState extends State<MapaScreen> {
                             IconButton(
                               icon: const Icon(Icons.delete, color: Colors.red),
                               onPressed: () async {
-                                await _geofenceService.deleteGeofence(geofence.id);
+                                await _geofenceService.deleteGeofence(
+                                  geofence.id,
+                                );
                                 if (context.mounted) Navigator.pop(context);
                               },
                             ),
@@ -224,7 +241,12 @@ class _MapaScreenState extends State<MapaScreen> {
               floatingActionButton: Padding(
                 padding: const EdgeInsets.only(bottom: 75),
                 child: FloatingActionButton.extended(
-                  onPressed: () => _showGeofencesList(context, geofenceSnapshot.data ?? [], patientLocation, patientName),
+                  onPressed: () => _showGeofencesList(
+                    context,
+                    geofenceSnapshot.data ?? [],
+                    patientLocation,
+                    patientName,
+                  ),
                   icon: const Icon(Icons.format_list_bulleted),
                   label: const Text('Gestionar Zonas'),
                   backgroundColor: Theme.of(context).primaryColor,
