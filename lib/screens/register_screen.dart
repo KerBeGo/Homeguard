@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
+import '../utils/phone_formatter.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -40,11 +42,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   void _submitForm() async {
     // Validaciones básicas
-    if (_emailController.text.isEmpty || _passController.text.isEmpty) {
+    if (_emailController.text.trim().isEmpty || _passController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Llena los campos obligatorios")),
       );
       return;
+    }
+
+    if (_passController.text.length < 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("La contraseña debe tener al menos 5 caracteres")),
+      );
+      return;
+    }
+
+    if (_esRegistro) {
+      String nombre = _nameController.text.trim();
+      if (nombre.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("El nombre completo es obligatorio")),
+        );
+        return;
+      }
+      
+      final nameRegExp = RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$');
+      if (!nameRegExp.hasMatch(nombre)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("El nombre solo debe contener letras")),
+        );
+        return;
+      }
     }
 
     showDialog(
@@ -86,7 +113,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         password: _passController.text.trim(),
         nombre: _nameController.text.trim(),
         rol: _rolSeleccionado,
-        telefono: _phoneController.text.trim(),
+        telefono: formatVenezuelanPhoneNumberStrict(_phoneController.text.trim()),
         edad: edad,
         fechaNacimiento: fechaNacimientoStr,
       );
@@ -132,6 +159,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               if (_esRegistro) ...[
                 TextField(
                   controller: _nameController,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]')),
+                  ],
                   decoration: const InputDecoration(
                     labelText: "Nombre Completo",
                     prefixIcon: Icon(Icons.person),
@@ -141,6 +171,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextField(
                   controller: _phoneController,
                   keyboardType: TextInputType.phone,
+                  inputFormatters: [VenezuelanPhoneFormatter()],
                   decoration: const InputDecoration(
                     labelText: "Teléfono (para alertas SMS)",
                     prefixIcon: Icon(Icons.phone),
