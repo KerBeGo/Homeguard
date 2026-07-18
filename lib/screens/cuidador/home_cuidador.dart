@@ -258,8 +258,8 @@ class _HomeCuidadorState extends State<HomeCuidador> {
 
                 if (patientId.isEmpty) return const SizedBox.shrink();
 
-                return FutureBuilder<DocumentSnapshot>(
-                  future: FirebaseFirestore.instance.collection('users').doc(patientId).get(),
+                return StreamBuilder<DocumentSnapshot>(
+                  stream: FirebaseFirestore.instance.collection('users').doc(patientId).snapshots(),
                   builder: (context, userSnapshot) {
                     if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
                       return const SizedBox.shrink();
@@ -300,20 +300,43 @@ class _HomeCuidadorState extends State<HomeCuidador> {
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Hero(
-                              tag: 'avatar_$patientId',
-                              child: CircleAvatar(
-                                radius: 30,
-                                backgroundColor: Colors.teal.shade50,
-                                child: Text(
-                                  nombre.substring(0, 1).toUpperCase(),
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.teal.shade800,
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                Hero(
+                                  tag: 'avatar_$patientId',
+                                  child: CircleAvatar(
+                                    radius: 30,
+                                    backgroundColor: Colors.teal.shade50,
+                                    child: Text(
+                                      nombre.substring(0, 1).toUpperCase(),
+                                      style: TextStyle(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.teal.shade800,
+                                      ),
+                                    ),
                                   ),
                                 ),
-                              ),
+                                if (pacienteData['monitoreoActivo'] == true)
+                                  Positioned(
+                                    bottom: 0,
+                                    right: 0,
+                                    child: Tooltip(
+                                      message: 'Monitoreo Activo',
+                                      child: Container(
+                                        width: 16,
+                                        height: 16,
+                                        decoration: BoxDecoration(
+                                          color: Colors.green,
+                                          shape: BoxShape.circle,
+                                          border: Border.all(
+                                              color: Colors.white, width: 2),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                             const SizedBox(height: 12),
                             Text(

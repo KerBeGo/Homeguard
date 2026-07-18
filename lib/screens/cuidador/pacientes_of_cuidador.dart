@@ -66,8 +66,8 @@ class PacientesDeCuidador extends StatelessWidget {
 
               if (pacienteId.isEmpty) return const SizedBox.shrink();
 
-              return FutureBuilder<DocumentSnapshot>(
-                future: FirebaseFirestore.instance.collection('users').doc(pacienteId).get(),
+              return StreamBuilder<DocumentSnapshot>(
+                stream: FirebaseFirestore.instance.collection('users').doc(pacienteId).snapshots(),
                 builder: (context, userSnapshot) {
                   if (!userSnapshot.hasData || !userSnapshot.data!.exists) {
                     return const SizedBox.shrink();
@@ -79,9 +79,32 @@ class PacientesDeCuidador extends StatelessWidget {
                     margin: const EdgeInsets.only(bottom: 12),
                     elevation: 2,
                     child: ListTile(
-                      leading: const CircleAvatar(
-                        backgroundColor: Colors.blue,
-                        child: Icon(Icons.person, color: Colors.white),
+                      leading: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          const CircleAvatar(
+                            backgroundColor: Colors.blue,
+                            child: Icon(Icons.person, color: Colors.white),
+                          ),
+                          if (pacienteData['monitoreoActivo'] == true)
+                            Positioned(
+                              bottom: 0,
+                              right: 0,
+                              child: Tooltip(
+                                message: 'Monitoreo Activo',
+                                child: Container(
+                                  width: 14,
+                                  height: 14,
+                                  decoration: BoxDecoration(
+                                    color: Colors.green,
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                        color: Colors.white, width: 2),
+                                  ),
+                                ),
+                              ),
+                            ),
+                        ],
                       ),
                       title: Text(
                         pacienteData['nombre'] ?? 'Paciente',

@@ -12,6 +12,122 @@ class CitasPaciente extends StatelessWidget {
     required this.patientName,
   });
 
+  Future<void> _agregarCita(BuildContext context) async {
+    final TextEditingController doctorController = TextEditingController();
+    final TextEditingController especialidadController = TextEditingController();
+    final TextEditingController notasController = TextEditingController();
+    DateTime selectedDate = DateTime.now();
+    TimeOfDay selectedTime = TimeOfDay.now();
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: Text("Nueva Cita para $patientName"),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: doctorController,
+                  decoration: const InputDecoration(labelText: "Doctor"),
+                ),
+                TextField(
+                  controller: especialidadController,
+                  decoration: const InputDecoration(labelText: "Especialidad"),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  title: Text("Fecha: ${selectedDate.day}/${selectedDate.month}/${selectedDate.year}"),
+                  trailing: const Icon(Icons.calendar_today),
+                  onTap: () async {
+                    final DateTime? picked = await showDatePicker(
+                      context: context,
+                      initialDate: selectedDate,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime.now().add(const Duration(days: 365)),
+                    );
+                    if (picked != null) {
+                      setState(() => selectedDate = picked);
+                    }
+                  },
+                ),
+                ListTile(
+                  title: Text("Hora: ${selectedTime.format(context)}"),
+                  trailing: const Icon(Icons.access_time),
+                  onTap: () async {
+                    final TimeOfDay? picked = await showTimePicker(
+                      context: context,
+                      initialTime: selectedTime,
+                    );
+                    if (picked != null) {
+                      setState(() => selectedTime = picked);
+                    }
+                  },
+                ),
+                TextField(
+                  controller: notasController,
+                  decoration: const InputDecoration(labelText: "Notas (opcional)"),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Cancelar"),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                if (doctorController.text.isEmpty || especialidadController.text.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text("Por favor rellena doctor y especialidad")),
+                  );
+                  return;
+                }
+
+                final DateTime appointmentDateTime = DateTime(
+                  selectedDate.year,
+                  selectedDate.month,
+                  selectedDate.day,
+                  selectedTime.hour,
+                  selectedTime.minute,
+                );
+
+                final appointment = Appointment(
+                  pacienteId: patientId,
+                  doctor: doctorController.text,
+                  especialidad: especialidadController.text,
+                  fecha: appointmentDateTime,
+                  notas: notasController.text,
+                );
+
+                try {
+                  await FirebaseFirestore.instance
+                      .collection('citas')
+                      .add(appointment.toMap());
+
+                  if (context.mounted) Navigator.pop(context);
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text("Error al guardar cita: $e"),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: const Text("Guardar"),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,6 +200,11 @@ class CitasPaciente extends StatelessWidget {
             },
           );
         },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _agregarCita(context),
+        backgroundColor: Colors.teal,
+        child: const Icon(Icons.add),
       ),
     );
   }

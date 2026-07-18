@@ -35,6 +35,20 @@ class MedicationService {
         );
   }
 
+  Future<List<Medication>> getPatientMedicationsFuture(String pacienteId) async {
+    final querySnapshot = await _firestore
+        .collection('pacientes')
+        .doc(pacienteId)
+        .collection('medicamentos')
+        .where('activo', isEqualTo: true)
+        .get();
+
+    return querySnapshot.docs
+        .map((doc) => Medication.fromMap(doc.data(), doc.id))
+        .toList();
+  }
+
+
   // Soft delete / deactivate
   Future<void> deactivateMedication(
     String pacienteId,

@@ -1,13 +1,57 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'local_notification_service.dart';
+import 'medication_service.dart';
 import 'dart:developer';
 
 // Esta función debe ser de nivel superior (fuera de la clase) para manejar mensajes en segundo plano
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   log("Manejando un mensaje en segundo plano: ${message.messageId}");
+  
+  // Asegurar que Firebase esté inicializado en el isolate de segundo plano
+  await Firebase.initializeApp();
+
+  final data = message.data;
+  if (data['tipo'] == 'update_medications') {
+    final pacienteId = data['pacienteId'];
+    if (pacienteId != null) {
+      log("Actualizando medicamentos en segundo plano para el paciente: $pacienteId");
+      
+      // Inicializar el servicio de notificaciones locales (requiere inicialización de zonas horarias)
+      await LocalNotificationService().init();
+
+      final meds = await MedicationService().getPatientMedicationsFuture(pacienteId);
+      await LocalNotificationService().scheduleReminders(meds);
+      
+      log("Medicamentos actualizados correctamente en segundo plano");
+    }
+  } else if (data['tipo'] == 'new_appointment') {
+    final citaId = data['citaId'];
+    final doctor = data['doctor'];
+    final especialidad = data['especialidad'];
+    final fechaMillis = data['fecha'];
+
+    if (citaId != null && fechaMillis != null && fechaMillis.toString().isNotEmpty) {
+      log("Programando cita en segundo plano: $especialidad con $doctor");
+      
+      await LocalNotificationService().init();
+
+      final dateTime = DateTime.fromMillisecondsSinceEpoch(int.parse(fechaMillis));
+      final int id = (citaId.hashCode.abs() % 10000000);
+
+      await LocalNotificationService().scheduleAppointmentNotification(
+        id: id,
+        doctor: doctor ?? '',
+        especialidad: especialidad ?? '',
+        scheduledDate: dateTime,
+      );
+      
+      log("Cita programada correctamente en segundo plano");
+    }
+  }
 }
 
 class NotificationService {

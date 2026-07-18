@@ -9,7 +9,8 @@ class GeofenceMapSelector extends StatefulWidget {
   final GeofenceModel? geofenceToEdit; // null si es nueva
   final GeoPoint? initialCenter;
   final String? patientName;
-  final Function(GeoPoint center, double radius, bool hasOverlap) onSelectionChanged;
+  final Function(GeoPoint center, double radius, bool hasOverlap)
+  onSelectionChanged;
 
   const GeofenceMapSelector({
     super.key,
@@ -25,7 +26,6 @@ class GeofenceMapSelector extends StatefulWidget {
 }
 
 class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
-
   late LatLng _currentCenter;
   late double _currentRadius;
   bool _hasOverlap = false;
@@ -41,11 +41,14 @@ class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
       );
       _currentRadius = widget.geofenceToEdit!.radiusMeters;
     } else if (widget.initialCenter != null) {
-      _currentCenter = LatLng(widget.initialCenter!.latitude, widget.initialCenter!.longitude);
+      _currentCenter = LatLng(
+        widget.initialCenter!.latitude,
+        widget.initialCenter!.longitude,
+      );
       _currentRadius = 100.0;
     } else {
       // Default center
-      _currentCenter = const LatLng(10.4806, -66.9036); 
+      _currentCenter = const LatLng(10.4806, -66.9036);
       _currentRadius = 100.0;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -57,7 +60,9 @@ class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
 
   void _checkOverlap() {
     GeofenceModel tempModel = GeofenceModel(
-      id: widget.geofenceToEdit?.id ?? '', // id vacío si es nuevo, así no se auto-excluye de la validación
+      id:
+          widget.geofenceToEdit?.id ??
+          '', // id vacío si es nuevo, así no se auto-excluye de la validación
       patientId: '',
       caregiverId: '',
       center: GeoPoint(_currentCenter.latitude, _currentCenter.longitude),
@@ -65,13 +70,16 @@ class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
       createdAt: DateTime.now(),
     );
 
-    bool overlap = _geofenceService.hasOverlap(tempModel, widget.existingGeofences);
+    bool overlap = _geofenceService.hasOverlap(
+      tempModel,
+      widget.existingGeofences,
+    );
     if (_hasOverlap != overlap) {
       setState(() {
         _hasOverlap = overlap;
       });
     }
-    
+
     widget.onSelectionChanged(tempModel.center, _currentRadius, overlap);
   }
 
@@ -102,7 +110,9 @@ class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
         circleId: const CircleId('current_selection'),
         center: _currentCenter,
         radius: _currentRadius,
-        fillColor: _hasOverlap ? Colors.red.withValues(alpha: 0.4) : Colors.green.withValues(alpha: 0.4),
+        fillColor: _hasOverlap
+            ? Colors.red.withValues(alpha: 0.4)
+            : Colors.green.withValues(alpha: 0.4),
         strokeColor: _hasOverlap ? Colors.red : Colors.green,
         strokeWidth: 2,
       ),
@@ -114,8 +124,13 @@ class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
       markers.add(
         Marker(
           markerId: const MarkerId('patient_location'),
-          position: LatLng(widget.initialCenter!.latitude, widget.initialCenter!.longitude),
-          infoWindow: InfoWindow(title: widget.patientName ?? 'Ubicación del Paciente'),
+          position: LatLng(
+            widget.initialCenter!.latitude,
+            widget.initialCenter!.longitude,
+          ),
+          infoWindow: InfoWindow(
+            title: widget.patientName ?? 'Ubicación del Paciente',
+          ),
           icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
         ),
       );
@@ -161,11 +176,14 @@ class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
             children: [
               Text(
                 'Radio de la zona: ${_currentRadius.toInt()} m',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
               Slider(
                 value: _currentRadius,
-                min: 50.0,
+                min: 20.0,
                 max: 1000.0, // Límites solicitados por el usuario
                 divisions: 95, // Pasos de 10 metros
                 label: '${_currentRadius.toInt()} m',
@@ -182,12 +200,15 @@ class _GeofenceMapSelectorState extends State<GeofenceMapSelector> {
                   padding: EdgeInsets.only(top: 8.0),
                   child: Text(
                     '¡Error! La zona se superpone con otra existente. Sepárelas o ajuste el radio.',
-                    style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
             ],
           ),
-        )
+        ),
       ],
     );
   }

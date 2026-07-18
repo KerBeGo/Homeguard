@@ -81,6 +81,14 @@ class TrackingService {
       _localGeofences = list;
     });
 
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+        'monitoreoActivo': true,
+      });
+    } catch (e) {
+      log("Error al actualizar monitoreoActivo: $e");
+    }
+
     late LocationSettings locationSettings;
     if (defaultTargetPlatform == TargetPlatform.android) {
       locationSettings = AndroidSettings(
@@ -147,6 +155,17 @@ class TrackingService {
     
     // Detener sensores
     SensorService().stopMonitoring();
+
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      try {
+        FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'monitoreoActivo': false,
+        });
+      } catch (e) {
+        log("Error al detener monitoreoActivo: $e");
+      }
+    }
   }
 
   void _notifyListeners(String status, bool tracking) {
