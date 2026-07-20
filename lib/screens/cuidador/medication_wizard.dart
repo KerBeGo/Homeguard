@@ -4,7 +4,7 @@ import '../../providers/medication_provider.dart';
 import '../../services/medication_service.dart';
 import '../../widgets/medications/week_days_selector.dart';
 import '../../widgets/medications/month_days_selector.dart';
-import '../../widgets/medications/period_selector.dart';
+// import '../../widgets/medications/period_selector.dart';
 
 class MedicationWizard extends StatefulWidget {
   final String patientId;
@@ -264,14 +264,14 @@ class _MedicationWizardState extends State<MedicationWizard> {
               decoration: const InputDecoration(
                 labelText: 'Tipo de Frecuencia',
               ),
-              items: ['Diario', 'Días de la semana', 'Días del mes', 'Por periodo', 'Intervalo'].map(
-                (String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(value),
-                  );
-                },
-              ).toList(),
+              items: ['Diario', 'Días de la semana', 'Días del mes'].map((
+                String value,
+              ) {
+                return DropdownMenuItem<String>(
+                  value: value,
+                  child: Text(value),
+                );
+              }).toList(),
               onChanged: (newValue) {
                 if (newValue != null) {
                   provider.updateFrecuencia(newValue);
@@ -303,21 +303,6 @@ class _MedicationWizardState extends State<MedicationWizard> {
                   periodoUnidad: med.periodoUnidad,
                 ),
               ),
-            if (med.frecuenciaTipo == 'Por periodo')
-              PeriodSelector(
-                initialCantidad: med.periodoCantidad,
-                initialUnidad: med.periodoUnidad,
-                onChanged: (cantidad, unidad) => provider.updateFrecuencia(
-                  med.frecuenciaTipo,
-                  diasEspecificos: med.diasEspecificos,
-                  diasMes: med.diasMes,
-                  intervaloDias: med.intervaloDias,
-                  periodoCantidad: cantidad,
-                  periodoUnidad: unidad,
-                ),
-              ),
-            if (med.frecuenciaTipo == 'Intervalo')
-              const Text('Cada X días (Por implementar detalle)'),
             if (med.frecuenciaTipo == 'Diario')
               const Text(
                 'Se programará para todos los días.',

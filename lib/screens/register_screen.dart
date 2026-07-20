@@ -24,6 +24,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   // ESTA ES LA CLAVE: Una variable para saber en qué modo estamos
   bool _esRegistro = false; // Empieza en false para mostrar LOGIN primero
+  bool _aceptoTerminos = false;
 
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
@@ -38,6 +39,64 @@ class _RegisterScreenState extends State<RegisterScreen> {
         _dobController.text = "${picked.day}/${picked.month}/${picked.year}";
       });
     }
+  }
+
+  void _mostrarTerminos() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Términos y Condiciones'),
+        content: const SingleChildScrollView(
+          child: Text(
+            '''Bienvenido a HOMEGUARD. Al registrarse y utilizar nuestra aplicación móvil, usted acepta los siguientes Términos y Condiciones. Por favor, léalos detenidamente antes de utilizar el servicio.
+
+1. Descripción del Servicio
+HOMEGUARD es una plataforma diseñada para la asistencia y monitoreo, facilitando la conexión entre pacientes (especialmente adultos mayores) y sus cuidadores. La aplicación permite la configuración de zonas seguras (geocercas), recordatorios de medicamentos, registro de citas médicas y un sistema de alertas en tiempo real para eventos de emergencia (como detección de caídas o botones SOS).
+
+2. Roles de Usuario
+Paciente: Usuario cuyas métricas de actividad, ubicación en zonas seguras y eventos de emergencia son monitoreados por la aplicación mediante los sensores del dispositivo.
+
+Cuidador: Usuario autorizado para visualizar la información del paciente, recibir notificaciones push (alertas de caídas, salidas de zonas seguras, recordatorios de medicación) y gestionar la configuración de asistencia a través de un código de vinculación.
+
+3. Privacidad y Recopilación de Datos
+Para el correcto funcionamiento del sistema, HOMEGUARD recopila y almacena datos estrictamente de texto, numéricos y de geolocalización. No se recopilan, almacenan ni transmiten archivos multimedia (fotografías, audios o videos). Los datos recopilados incluyen:
+
+Información de perfil (nombre, correo, rol, edad, teléfono).
+Datos de salud y rutina provistos por el usuario (horarios de medicamentos, historial de tomas, citas médicas).
+Coordenadas GPS y configuración de geocercas para el monitoreo de zonas seguras.
+Registros de actividad física y métricas de los sensores del dispositivo para calibrar las alertas de caídas.
+
+Todos estos datos son encriptados y almacenados de manera segura. Al aceptar estos términos, usted otorga su consentimiento para el procesamiento de esta información con el fin exclusivo de prestar el servicio de HOMEGUARD.
+
+4. Limitación de Responsabilidad Médica y de Emergencias
+HOMEGUARD es una herramienta de asistencia complementaria y no sustituye la atención médica profesional, la supervisión humana directa, ni los servicios de emergencia (como el 911).
+
+Detección de Caídas y Sensores Locales: Aunque la aplicación utiliza modelos tecnológicos avanzados y sensores locales del dispositivo para la detección de anomalías o caídas de forma continua, el sistema puede no detectar el 100% de los incidentes debido a limitaciones del hardware, posicionamiento del teléfono o fallos externos.
+
+Conectividad: Mientras que ciertas funciones de detección operan de manera local en el dispositivo, la transmisión de las alertas al cuidador (vía Firebase Cloud Messaging o SMS) requiere obligatoriamente de una conexión a internet activa y cobertura de red. HOMEGUARD no se hace responsable por retrasos o fallos en las notificaciones derivados de problemas de conectividad, batería agotada en el dispositivo del paciente o fallos en el sistema operativo del teléfono.
+
+5. Responsabilidades del Usuario
+Precisión de los datos: Usted es responsable de mantener actualizada la información de medicamentos, zonas seguras y contactos.
+
+Mantenimiento del dispositivo: Para que HOMEGUARD funcione correctamente, es responsabilidad del usuario asegurarse de que el dispositivo móvil tenga batería suficiente, los permisos de ubicación (GPS) activos en segundo plano y conexión a internet.
+
+Uso adecuado: El cuidador se compromete a usar los datos de geolocalización y salud del paciente respetando su privacidad y dignidad, contando con el consentimiento previo del paciente para su monitoreo.
+
+6. Modificaciones de los Términos
+Nos reservamos el derecho de modificar estos Términos y Condiciones en cualquier momento. Se notificará a los usuarios a través de la aplicación sobre cualquier cambio significativo. El uso continuado de HOMEGUARD después de dichas modificaciones constituye la aceptación de los nuevos términos.
+
+7. Contacto
+Si tiene alguna pregunta, duda o requiere soporte técnico sobre el manejo de sus datos, por favor contáctenos a través de homeguard.contacto@gmail.com.''',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _submitForm() async {
@@ -57,6 +116,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     if (_esRegistro) {
+      if (!_aceptoTerminos) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Debes aceptar los Términos y Condiciones para registrarte")),
+        );
+        return;
+      }
+
       String nombre = _nameController.text.trim();
       if (nombre.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -270,6 +336,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Checkbox(
+                      value: _aceptoTerminos,
+                      onChanged: (val) {
+                        setState(() {
+                          _aceptoTerminos = val ?? false;
+                        });
+                      },
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(top: 12.0),
+                        child: Wrap(
+                          children: [
+                            const Text("Acepto los "),
+                            GestureDetector(
+                              onTap: _mostrarTerminos,
+                              child: const Text(
+                                "términos y condiciones",
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  decoration: TextDecoration.underline,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
