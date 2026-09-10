@@ -409,109 +409,7 @@ class _HomePacienteState extends State<HomePaciente> {
                 // Seccion Inferior (Requiere scroll)
                 OptionallyHiddenSection(user: user),
 
-                const SizedBox(height: 32),
-                const Center(
-                  child: Text(
-                    "Simular Alertas (Pruebas)",
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    alignment: WrapAlignment.center,
-                    children: [
-                      _buildAlertButton(
-                        context,
-                        label: "SOS",
-                        icon: Icons.sos,
-                        color: Colors.red,
-                        onPressed: () =>
-                            _sendAlert("sos", "¡Solicitud de ayuda SOS!"),
-                      ),
-                      // _buildAlertButton(
-                      //   context,
-                      //   label: "Caída",
-                      //   icon: Icons.personal_injury,
-                      //   color: Colors.orange,
-                      //   onPressed: () => _sendAlert(
-                      //     "caida",
-                      //     "Se ha detectado una posible caída",
-                      //   ),
-                      // ),
-                      // _buildAlertButton(
-                      //   context,
-                      //   label: "Medicina",
-                      //   icon: Icons.medication,
-                      //   color: Colors.purple,
-                      //   onPressed: () => _sendAlert(
-                      //     "medicamento",
-                      //     "Recordatorio de medicamento pendiente",
-                      //   ),
-                      // ),
-                      // _buildAlertButton(
-                      //   context,
-                      //   label: "Zona Segura",
-                      //   icon: Icons.map,
-                      //   color: Colors.blue,
-                      //   onPressed: () => _sendAlert(
-                      //     "zona_segura",
-                      //     "El paciente ha salido de la zona segura",
-                      //   ),
-                      // ),
-                      // _buildAlertButton(
-                      //   context,
-                      //   label: "Test SMS",
-                      //   icon: Icons.sms,
-                      //   color: Colors.teal,
-                      //   onPressed: () async {
-                      //     try {
-                      //       await _alertService.forzarSmsDePrueba(
-                      //         "prueba",
-                      //         "Este es un mensaje de prueba forzado por SMS.",
-                      //       );
-                      //       if (context.mounted) {
-                      //         ScaffoldMessenger.of(context).showSnackBar(
-                      //           const SnackBar(
-                      //             content: Text(
-                      //               "Intento de envío de SMS ejecutado",
-                      //             ),
-                      //             backgroundColor: Colors.teal,
-                      //           ),
-                      //         );
-                      //       }
-                      //     } catch (e) {
-                      //       if (context.mounted) {
-                      //         ScaffoldMessenger.of(context).showSnackBar(
-                      //           SnackBar(
-                      //             content: Text("Error al probar SMS: $e"),
-                      //             backgroundColor: Colors.red,
-                      //           ),
-                      //         );
-                      //       }
-                      //     }
-                      //   },
-                      // ),
-                      // _buildAlertButton(
-                      //   context,
-                      //   label: "Simular Caída",
-                      //   icon: Icons.personal_injury,
-                      //   color: Colors.orange,
-                      //   onPressed: () => _sendAlert(
-                      //     "caida",
-                      //     "¡ALERTA! Se ha simulado una caída manual para pruebas. Por favor verifica el estado del paciente.",
-                      //   ),
-                      // ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 40),
+
               ],
             ),
           ),
@@ -586,26 +484,6 @@ class _HomePacienteState extends State<HomePaciente> {
     );
   }
 
-  Widget _buildAlertButton(
-    BuildContext context, {
-    required String label,
-    required IconData icon,
-    required Color color,
-    required VoidCallback onPressed,
-  }) {
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: color,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        elevation: 0,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-      onPressed: onPressed,
-      icon: Icon(icon, size: 18),
-      label: Text(label),
-    );
-  }
 
   Future<void> _sendAlert(String tipo, String mensaje) async {
     try {
