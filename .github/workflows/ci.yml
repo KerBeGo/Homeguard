@@ -34,7 +34,7 @@ jobs:
         run: |
           printf 'MAPS_API_KEY=%s\nFIREBASE_API_KEY_ANDROID=%s\nFIREBASE_API_KEY_IOS=x\nFIREBASE_API_KEY_WEB=x\n' \
             "${MAPS_API_KEY:-ci}" "${FIREBASE_API_KEY_ANDROID:-ci}" > .env
-          echo "MAPS_API_KEY=${MAPS_API_KEY:-ci}" >> android/local.properties
+          echo "maps.api.key=${MAPS_API_KEY:-ci}" >> android/local.properties
           if [ -n "$GOOGLE_SERVICES_JSON" ]; then
             echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
           fi
@@ -57,6 +57,22 @@ jobs:
         with:
           name: homeguard-debug-apk
           path: build/app/outputs/flutter-apk/app-debug.apk
+
+  reloj:
+    name: App del reloj Wear OS (análisis y pruebas)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: homeguard_watch
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter test
 
   functions:
     name: Cloud Functions (pruebas)

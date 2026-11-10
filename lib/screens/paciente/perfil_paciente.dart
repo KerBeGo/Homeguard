@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../services/local_ia_service.dart';
+import 'vincular_reloj_screen.dart';
 
 class PerfilPaciente extends StatelessWidget {
   const PerfilPaciente({super.key});
@@ -149,6 +150,18 @@ class PerfilPaciente extends StatelessWidget {
                         },
                       );
                     },
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Card(
+                  child: ListTile(
+                    leading: const Icon(Icons.watch, color: Colors.teal),
+                    title: const Text('Vincular reloj inteligente'),
+                    subtitle: const Text('SOS y detección de caídas desde la muñeca'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const VincularRelojScreen()),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 30),

@@ -57,3 +57,65 @@ match /alertas/{id} {
 ```
 
 Prueba siempre las reglas en el simulador de la consola antes de publicarlas. Se recomienda versionarlas en el repositorio (`firestore.rules`).
+
+---
+
+# Segunda entrega: IA, llamadas, reloj y verificación automática
+
+## 1. Red neuronal de detección de caídas
+
+La red original casi nunca recibía una caída reconocible: con las lecturas reales de la app daba un 0,1 % de probabilidad. Hay detalles en `ia/entrenamiento/README.md`.
+
+| Cambio | Archivo |
+|---|---|
+| Acelerómetro a 50 Hz (antes ~15 Hz) | `lib/services/sensor_service.dart` |
+| Ventana remuestreada a 50 Hz exactos y alineada con el golpe; búfer de 7,5 s | `lib/services/ia/preprocesamiento.dart`, `local_ia_service.dart` |
+| Espectrograma centrado en el golpe (antes usaba audio anterior al impacto) | ídem |
+| Red v2 reentrenada (`assets/modelo_fusion_v2.tflite`), con la v1 como respaldo | `ia/entrenamiento/` |
+| Los logs de la IA ya no se suben a Firestore línea por línea, solo los eventos importantes (costo y privacidad) | `local_ia_service.dart` |
+| Detección de agitación ajustada a 50 Hz | ídem |
+
+## 2. Llamadas y videollamadas
+
+- **Botones:** el cuidador tiene «Llamar» y «Videollamada» en la ficha del paciente. El paciente los tiene junto a cada cuidador, en su pantalla de inicio.
+- **Conexión directa:** el audio y el video van de teléfono a teléfono (WebRTC) y no tienen costo por minuto. La función `notificarLlamada` hace sonar el teléfono del receptor y bloquea las llamadas entre personas no vinculadas.
+- **Conexión en redes difíciles:** algunas redes móviles o corporativas necesitan un servidor TURN. Se agrega en `LlamadaService._configuracion`.
+
+## 3. Reloj inteligente (Wear OS)
+
+- **App nueva** en `homeguard_watch/`: botón SOS y detección de caídas en la muñeca, con 30 segundos para responder «Estoy bien».
+- **Vinculación con código:** el paciente lo genera en *Mi perfil → Vincular reloj* y la función `canjearCodigoReloj` inicia la sesión en el reloj.
+- Lee `homeguard_watch/README.md`.
+
+## 4. Verificación automática (GitHub Actions)
+
+`.github/workflows/ci.yml` compila y prueba la app del teléfono, la del reloj y las Cloud Functions en cada `git push`. Para que también genere el APK descargable, agrega en *Settings → Secrets and variables → Actions*:
+
+- `GOOGLE_SERVICES_JSON`: el contenido completo de `android/app/google-services.json`
+- `MAPS_API_KEY` y `FIREBASE_API_KEY_ANDROID`
+
+## 5. Pasos de despliegue adicionales
+
+```bash
+firebase deploy --only functions      # incluye notificarLlamada y canjearCodigoReloj
+```
+
+1. En Google Cloud, en *IAM*, da a la cuenta de servicio de las funciones el rol **Service Account Token Creator**. Lo necesita el reloj para iniciar sesión.
+2. Agrega a las reglas de Firestore (ejemplo):
+
+```
+match /llamadas/{id} {
+  allow create: if request.auth.uid == request.resource.data.de;
+  allow read, update: if request.auth.uid in [resource.data.de, resource.data.para];
+  match /{sub}/{doc} {
+    allow read, write: if request.auth.uid in get(/databases/$(database)/documents/llamadas/$(id)).data.de
+                       || request.auth.uid == get(/databases/$(database)/documents/llamadas/$(id)).data.para;
+  }
+}
+match /codigos_reloj/{codigo} {
+  allow create: if request.auth != null && request.resource.data.uid == request.auth.uid;
+  allow read, update, delete: if false;   // solo la Cloud Function los lee
+}
+```
+
+La regla de las subcolecciones de llamadas es un borrador: pruébala en el simulador de reglas antes de publicarla.
