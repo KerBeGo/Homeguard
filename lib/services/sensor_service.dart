@@ -37,7 +37,9 @@ class SensorService {
 
     debugPrint("SENSOR MOVIMIENTO: Intentando conectar con el acelerómetro...");
     debugPrint("SENSOR MOVIMIENTO: Solicitando acceso a accelerometerEvents...");
-    _accelerometerSubscription = accelerometerEventStream(samplingPeriod: SensorInterval.uiInterval).listen((AccelerometerEvent event) {
+    // 50 Hz (gameInterval): la red neuronal se entrenó a 50 Hz. Con uiInterval (~15 Hz)
+    // se perdían el instante del golpe y casi toda la fase de caída libre.
+    _accelerometerSubscription = accelerometerEventStream(samplingPeriod: SensorInterval.gameInterval).listen((AccelerometerEvent event) {
       _analyzeMovement(event);
     }, onError: (e) {
       debugPrint("ERROR CRÍTICO EN ACELERÓMETRO: $e");
