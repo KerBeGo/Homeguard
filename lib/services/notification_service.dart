@@ -5,6 +5,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'local_notification_service.dart';
 import 'medication_service.dart';
 import 'dart:developer';
+import 'package:flutter/material.dart';
+import '../main.dart' show globalNavigatorKey;
+import '../screens/llamadas/llamada_screen.dart';
 
 // Esta función debe ser de nivel superior (fuera de la clase) para manejar mensajes en segundo plano
 @pragma('vm:entry-point')
@@ -93,6 +96,12 @@ class NotificationService {
       log('¡Mensaje recibido en primer plano!');
       log('Datos del mensaje: ${message.data}');
 
+      // Llamada entrante con la app abierta: se muestra directamente la pantalla.
+      if (_esLlamada(message)) {
+        abrirLlamadaEntrante(message.data['llamadaId']);
+        return;
+      }
+
       if (message.notification != null) {
         log(
           'El mensaje también contenía una notificación: ${message.notification?.title}',
@@ -108,13 +117,31 @@ class NotificationService {
     // 6. Manejar cuando el usuario TOCA la notificación y la app estaba en segundo plano
     FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
       log('El usuario tocó la notificación!');
-      // Aquí podrías navegar a la pantalla de alertas si fuera necesario
+      if (_esLlamada(message)) abrirLlamadaEntrante(message.data['llamadaId']);
     });
 
     // 7. Manejar si la app se abrió desde una notificación estando CERRADA
     RemoteMessage? initialMessage = await _fcm.getInitialMessage();
     if (initialMessage != null) {
       log('La app se abrió desde una notificación (estando cerrada)');
+      if (_esLlamada(initialMessage)) abrirLlamadaEntrante(initialMessage.data['llamadaId']);
+    }
+  }
+
+  static bool _esLlamada(RemoteMessage m) =>
+      m.data['tipo'] == 'llamada' && (m.data['llamadaId'] ?? '').toString().isNotEmpty;
+
+  /// Abre la pantalla de llamada entrante. Si la app se está abriendo y el navegador
+  /// todavía no existe, reintenta durante unos segundos.
+  static Future<void> abrirLlamadaEntrante(String? llamadaId) async {
+    if (llamadaId == null) return;
+    for (var intento = 0; intento < 20; intento++) {
+      final nav = globalNavigatorKey.currentState;
+      if (nav != null) {
+        nav.push(MaterialPageRoute(builder: (_) => LlamadaScreen.entrante(llamadaEntranteId: llamadaId)));
+        return;
+      }
+      await Future.delayed(const Duration(milliseconds: 500));
     }
   }
 

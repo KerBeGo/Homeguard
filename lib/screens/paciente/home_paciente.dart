@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/alert_service.dart';
 import '../../services/tracking_service.dart';
+import '../llamadas/llamada_screen.dart';
 
 class HomePaciente extends StatefulWidget {
   const HomePaciente({super.key});
@@ -393,6 +394,33 @@ class _HomePacienteState extends State<HomePaciente> {
                                   ),
                                 ),
                                 subtitle: const Text("Cuidador Activo"),
+                                // Llamar o videollamar al cuidador con un toque.
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    IconButton(
+                                      iconSize: 32,
+                                      tooltip: 'Llamar',
+                                      icon: const Icon(Icons.call, color: Colors.green),
+                                      onPressed: () => LlamadaScreen.llamar(
+                                        context,
+                                        paraUid: cuidadorId,
+                                        nombre: nombre.toString(),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      iconSize: 32,
+                                      tooltip: 'Videollamada',
+                                      icon: const Icon(Icons.videocam, color: Colors.blue),
+                                      onPressed: () => LlamadaScreen.llamar(
+                                        context,
+                                        paraUid: cuidadorId,
+                                        nombre: nombre.toString(),
+                                        video: true,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             );
                           },

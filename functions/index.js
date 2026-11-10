@@ -152,3 +152,50 @@ exports.syncAppointmentNotification = onDocumentCreated(
     }
   },
 );
+
+// ---------------------------------------------------------------------------
+// Llamadas y videollamadas: hace sonar el teléfono del receptor.
+// ---------------------------------------------------------------------------
+const { procesarLlamada } = require("./llamadas");
+
+exports.notificarLlamada = onDocumentCreated("llamadas/{llamadaId}", async (event) => {
+  const snapshot = event.data;
+  if (!snapshot) return null;
+  try {
+    const r = await procesarLlamada({
+      db: admin.firestore(),
+      messaging: admin.messaging(),
+      llamadaRef: snapshot.ref,
+      llamadaId: event.params.llamadaId,
+      llamada: snapshot.data(),
+    });
+    console.log("Llamada procesada:", JSON.stringify(r));
+    return r;
+  } catch (error) {
+    console.error("Error notificando llamada:", error);
+    return null;
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Reloj inteligente: canjea el código de 6 dígitos por un token de sesión.
+// POST https://<región>-<proyecto>.cloudfunctions.net/canjearCodigoReloj  {"codigo":"123456"}
+// ---------------------------------------------------------------------------
+const { onRequest } = require("firebase-functions/v2/https");
+const { canjearCodigo } = require("./reloj");
+
+exports.canjearCodigoReloj = onRequest({ cors: false, maxInstances: 5 }, async (req, res) => {
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Usa POST." });
+    return;
+  }
+  try {
+    const codigo = String((req.body && req.body.codigo) || "");
+    const r = await canjearCodigo({ db: admin.firestore(), auth: admin.auth(), codigo });
+    res.json({ token: r.token });
+  } catch (error) {
+    const status = error.status || 500;
+    if (status === 500) console.error("Error canjeando código de reloj:", error);
+    res.status(status).json({ error: status === 500 ? "Error interno." : error.message });
+  }
+});
