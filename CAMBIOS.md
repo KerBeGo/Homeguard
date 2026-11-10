@@ -108,7 +108,7 @@ match /llamadas/{id} {
   allow create: if request.auth.uid == request.resource.data.de;
   allow read, update: if request.auth.uid in [resource.data.de, resource.data.para];
   match /{sub}/{doc} {
-    allow read, write: if request.auth.uid in get(/databases/$(database)/documents/llamadas/$(id)).data.de
+    allow read, write: if request.auth.uid == get(/databases/$(database)/documents/llamadas/$(id)).data.de
                        || request.auth.uid == get(/databases/$(database)/documents/llamadas/$(id)).data.para;
   }
 }

@@ -85,9 +85,10 @@ class LlamadaService extends ChangeNotifier {
       _escucharCandidatos('candidatosReceptor');
       _publicarCandidatos('candidatosLlamante');
 
+      // Primero se crea el documento con la oferta y DESPUÉS se fija la descripción local:
+      // así las rutas de red (que empiezan a generarse con setLocalDescription) nunca
+      // se guardan antes de que exista la llamada, y las reglas de Firestore las aceptan.
       final oferta = await _pc!.createOffer();
-      await _pc!.setLocalDescription(oferta);
-
       final perfil = await _db.collection('users').doc(yo.uid).get();
       await _ref.set({
         'de': yo.uid,
@@ -98,6 +99,7 @@ class LlamadaService extends ChangeNotifier {
         'oferta': oferta.toMap(),
         'creada': FieldValue.serverTimestamp(),
       });
+      await _pc!.setLocalDescription(oferta);
       _cambiar(EstadoLlamada.sonando);
 
       _suscripciones.add(_ref.snapshots().listen((snap) async {
