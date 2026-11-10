@@ -5,6 +5,7 @@ import 'package:tflite_flutter/tflite_flutter.dart' as tfl;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'ia/preprocesamiento.dart';
 
 void debugPrint(String message) {
   // ignore: avoid_print
@@ -99,6 +100,13 @@ class LocalAIService {
     setSensitivityLevel(_sensitivityLevel);
   }
 
+  static const bool _esVersionPublicada = bool.fromEnvironment('dart.vm.product');
+
+  static bool _esEventoImportante(String mensaje) {
+    final m = mensaje.toUpperCase();
+    return m.contains('CONFIRMAD') || m.contains('DETECTAD') || m.contains('ERROR');
+  }
+
   // Stream de logs para el Dashboard del Desarrollador
   final StreamController<String> _logController = StreamController<String>.broadcast();
   Stream<String> get logStream => _logController.stream;
@@ -114,9 +122,12 @@ class LocalAIService {
     }
     _logController.add(formattedMessage);
 
-    // Subir log remotamente a Firestore para que el cuidador pueda monitorear la IA
+    // Subir log remotamente a Firestore para que el cuidador pueda monitorear la IA.
+    // En la versión publicada solo se suben los eventos importantes: antes se subía
+    // CADA línea (varias por segundo con el sensor activo), lo que dispara el costo
+    // de Firestore y envía a la nube datos de salud innecesarios.
     final user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
+    if (user != null && (!_esVersionPublicada || _esEventoImportante(message))) {
       FirebaseFirestore.instance.collection('developer_logs').add({
         'message': formattedMessage,
         'timestamp': FieldValue.serverTimestamp(),
@@ -130,7 +141,14 @@ class LocalAIService {
   // Intérprete y estado de TensorFlow Lite (Edge AI)
   tfl.Interpreter? _interpreter;
   bool _isModelLoaded = false;
-  static const String _modelAssetPath = 'assets/modelo_fusion.tflite';
+  // v2: reentrenada con orientación aleatoria del teléfono y ejemplos de caminar, correr,
+  // sentarse, acostarse, saltar y teléfono que se cae (ver ia/entrenamiento). Misma
+  // entrada y salida que la v1, que queda como respaldo si la v2 no carga.
+  static const List<String> _modelosDisponibles = [
+    'assets/modelo_fusion_v2.tflite',
+    'assets/modelo_fusion.tflite',
+  ];
+  String _modelAssetPath = _modelosDisponibles.first;
 
   // Estados de la IA
   FallState _currentState = FallState.searching;
@@ -142,7 +160,9 @@ class LocalAIService {
   final Queue<AccelerometerEntry> _accBuffer = Queue<AccelerometerEntry>();
   final Queue<AudioEntry> _audioBuffer = Queue<AudioEntry>();
 
-  static const int _windowDurationMs = 5000; // Ventana de 5 segundos de memoria
+  // 7,5 s de memoria: la red necesita 3,5 s ANTES del golpe y la evaluación ocurre
+  // 2,5 s DESPUÉS. Con 5 s, el inicio de la ventana ya se había borrado.
+  static const int _windowDurationMs = VentanaRed.memoriaMs;
   static const int _postImpactObservationMs = 2500; // Tiempo para observar quietud y voz post-golpe
 
   // Memoria de sonido reciente para compatibilidad externa
@@ -202,8 +222,20 @@ class LocalAIService {
   /// Carga e inicializa el modelo Edge AI (.tflite) desde los assets locales
   Future<void> initializeModel() async {
     try {
-      addLog("IA EDGE: Intentando cargar modelo TFLite desde $_modelAssetPath...");
-      _interpreter = await tfl.Interpreter.fromAsset(_modelAssetPath);
+      tfl.Interpreter? cargado;
+      Object? ultimoError;
+      for (final ruta in _modelosDisponibles) {
+        try {
+          addLog("IA EDGE: Intentando cargar modelo TFLite desde $ruta...");
+          cargado = await tfl.Interpreter.fromAsset(ruta);
+          _modelAssetPath = ruta;
+          break;
+        } catch (e) {
+          ultimoError = e;
+        }
+      }
+      if (cargado == null) throw ultimoError ?? Exception('Sin modelo');
+      _interpreter = cargado;
       _isModelLoaded = true;
       addLog("IA EDGE: ¡Modelo neuronal de Fusión Intermedia cargado correctamente!");
       
@@ -493,7 +525,7 @@ class LocalAIService {
     var accTensor = _convertAccBufferToTensor(impactTime);
 
     // 2. Convertir buffer de audio a Tensor [1, 128, 1] para la rama acústica (Mel-spectrograma simplificado o serie temporal)
-    var audioTensor = _convertAudioBufferToTensor();
+    var audioTensor = _convertAudioBufferToTensor(impactTime);
 
     // 3. Empaquetar las entradas múltiples en una lista (Tensor 0: Audio, Tensor 1: Acelerómetro)
     List<Object> inputs = [audioTensor as Object, accTensor as Object];
@@ -560,80 +592,30 @@ class LocalAIService {
     return isFall;
   }
 
-  /// Convierte el búfer dinámico del acelerómetro a una forma estática [1, 250, 3] esperada por la 1D-CNN
+  /// Convierte el búfer del acelerómetro al tensor [1, 250, 3] de la red:
+  /// 5 s a 50 Hz exactos alrededor del impacto, con interpolación lineal.
   List<List<List<double>>> _convertAccBufferToTensor(DateTime impactTime) {
-    const int targetLength = 250; // Longitud esperada por el modelo (5 segundos a 50Hz)
-    
-    // Ventana temporal centrada en el impacto (3.5 segundos antes, 1.5 segundos después)
-    final windowStart = impactTime.subtract(const Duration(milliseconds: 3500));
-    final windowEnd = impactTime.add(const Duration(milliseconds: 1500));
-
-    List<AccelerometerEntry> selectedSamples = [];
-    for (var entry in _accBuffer) {
-      if (entry.time.isAfter(windowStart) && entry.time.isBefore(windowEnd)) {
-        selectedSamples.add(entry);
-      }
-    }
-
-    // Rellenar o recortar las muestras para tener exactamente 250 elementos (Padded Temporal Interpolation)
-    List<List<double>> outputSequence = [];
-    if (selectedSamples.isEmpty) {
-      // Si el búfer está vacío, rellenamos con gravedad estática en eje Z
-      outputSequence = List.generate(targetLength, (_) => [0.0, 0.0, 9.8]);
-    } else if (selectedSamples.length < targetLength) {
-      // Duplicar el último elemento como padding si hay menos muestras
-      for (int i = 0; i < targetLength; i++) {
-        int index = i < selectedSamples.length ? i : selectedSamples.length - 1;
-        outputSequence.add([
-          selectedSamples[index].x,
-          selectedSamples[index].y,
-          selectedSamples[index].z
-        ]);
-      }
-    } else {
-      // Recortar si hay más
-      for (int i = 0; i < targetLength; i++) {
-        outputSequence.add([
-          selectedSamples[i].x,
-          selectedSamples[i].y,
-          selectedSamples[i].z
-        ]);
-      }
-    }
-
-    // Encapsular en la dimensión de lote (Batch Size = 1) -> [1, 250, 3]
-    return [outputSequence];
+    final lecturas = _accBuffer
+        .map((e) => Muestra3D(e.time.millisecondsSinceEpoch, e.x, e.y, e.z))
+        .toList();
+    return [remuestrearAcelerometro(lecturas, impactTime.millisecondsSinceEpoch)];
   }
 
   final bool _useSpectrogramMode = true; // ACTIVADO: Usa el nuevo modelo_fusion2.tflite
 
   /// Convierte el búfer de decibelios continuos a la forma esperada por la red
-  dynamic _convertAudioBufferToTensor() {
+  dynamic _convertAudioBufferToTensor(DateTime impactTime) {
     const int targetLength = 128; // Ventana temporal
     
     List<double> dbList = _audioBuffer.map((e) => e.db).toList();
 
     if (_useSpectrogramMode) {
-      // IMPLEMENTACIÓN REAL DE ESPECTROGRAMA (FFT)
-      List<AudioEntry> audioList = _audioBuffer.toList(); // Convertir Queue a List
-      List<List<List<double>>> realSpectrogram = [];
-      
-      for (int f = 0; f < 128; f++) {
-        List<List<double>> row = [];
-        for (int t = 0; t < targetLength; t++) {
-          double val = 45.0; // Ruido base si no hay datos
-          if (audioList.length > t) {
-            if (audioList[t].frequencies != null && audioList[t].frequencies!.length > f) {
-              val = audioList[t].frequencies![f];
-            } else {
-              val = audioList[t].db; // fallback
-            }
-          }
-          row.add([val]);
-        }
-        realSpectrogram.add(row);
-      }
-      return [realSpectrogram]; // [1, 128, 128, 1]
+      // Espectrograma de los 128 cuadros más cercanos al golpe (antes se usaban
+      // los más antiguos del búfer, todos anteriores al impacto).
+      final cuadros = _audioBuffer
+          .map((e) => CuadroAudio(e.time.millisecondsSinceEpoch, e.db, e.frequencies))
+          .toList();
+      return [espectrogramaCentrado(cuadros, impactTime.millisecondsSinceEpoch)]; // [1, 128, 128, 1]
     }
 
     // Relleno estático / Interpolación lineal de decibelios a 128 características temporales
@@ -894,12 +876,19 @@ class LocalAIService {
     final oneSecondAgo = now.subtract(const Duration(seconds: 1));
 
     int highAccelerationCount = 0;
+    int totalUltimoSegundo = 0;
     for (var entry in _accBuffer) {
       if (entry.time.isAfter(oneSecondAgo)) {
+        totalUltimoSegundo++;
         if (entry.magnitude > _shakeThreshold) {
           highAccelerationCount++;
         }
       }
+    }
+    // Con el sensor a 50 Hz llegan más lecturas por segundo: además del mínimo de
+    // 10, se exige que al menos el 40 % del último segundo supere el umbral.
+    if (highAccelerationCount < (totalUltimoSegundo * 0.4).ceil()) {
+      highAccelerationCount = min(highAccelerationCount, 9);
     }
 
     // Un solo impacto contra la cama suele durar de 1 a 3 muestras (muy rápido).

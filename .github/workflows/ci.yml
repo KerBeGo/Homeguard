@@ -1,0 +1,89 @@
+# Verificación automática: en cada push o pull request compila la app,
+# ejecuta las pruebas y deja un APK de prueba para descargar en la pestaña Actions.
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  flutter:
+    name: App Flutter (análisis, pruebas y APK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # El proyecto carga .env y necesita claves para compilar. En CI se usan valores de
+      # relleno (o los secretos del repositorio, si los configuras en Settings > Secrets).
+      - name: Preparar configuración local
+        env:
+          MAPS_API_KEY: ${{ secrets.MAPS_API_KEY }}
+          FIREBASE_API_KEY_ANDROID: ${{ secrets.FIREBASE_API_KEY_ANDROID }}
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          printf 'MAPS_API_KEY=%s\nFIREBASE_API_KEY_ANDROID=%s\nFIREBASE_API_KEY_IOS=x\nFIREBASE_API_KEY_WEB=x\n' \
+            "${MAPS_API_KEY:-ci}" "${FIREBASE_API_KEY_ANDROID:-ci}" > .env
+          echo "maps.api.key=${MAPS_API_KEY:-ci}" >> android/local.properties
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then
+            echo "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          fi
+
+      - run: flutter pub get
+
+      - name: Análisis estático
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Pruebas
+        run: flutter test
+
+      - name: Compilar APK de prueba
+        if: ${{ hashFiles('android/app/google-services.json') != '' }}
+        run: flutter build apk --debug
+
+      - name: Publicar APK
+        if: ${{ hashFiles('build/app/outputs/flutter-apk/app-debug.apk') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: homeguard-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+
+  reloj:
+    name: App del reloj Wear OS (análisis y pruebas)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: homeguard_watch
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - run: flutter pub get
+      - run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - run: flutter test
+
+  functions:
+    name: Cloud Functions (pruebas)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: npm ci
+      - run: npm test

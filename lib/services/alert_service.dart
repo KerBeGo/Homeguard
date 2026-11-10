@@ -6,6 +6,7 @@ import 'local_notification_service.dart';
 import 'package:another_telephony/telephony.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:permission_handler/permission_handler.dart' as ph;
 
 void debugPrint(String message) {
   // ignore: avoid_print
@@ -38,14 +39,10 @@ class AlertService {
 
     final data = doc.data() as Map<String, dynamic>;
     final nombrePaciente = data['nombre'] ?? 'Paciente';
-    final cuidadorId = data['cuidadorId'];
+    final String cuidadorId = (data['cuidadorId'] as String?) ?? '';
 
-    if (cuidadorId == null) {
-      // print("No hay cuidador vinculado para enviar la alerta");
-      // En una aplicación real, podrías querer manejar esto de forma diferente
-      // (ej: enviar a una lista general o notificar al paciente)
-      return;
-    }
+    // Ya no se descarta la alerta si falta `cuidadorId`: la Cloud Function
+    // busca a TODOS los cuidadores vinculados en `connections` y les avisa.
 
     final nuevaAlerta = AlertModel(
       tipo: tipo,
@@ -53,6 +50,7 @@ class AlertService {
       pacienteId: user.uid,
       pacienteNombre: nombrePaciente,
       cuidadorId: cuidadorId,
+      cuidadorIds: cuidadorId.isEmpty ? const [] : [cuidadorId],
       timestamp: DateTime.now(),
     );
 
@@ -143,9 +141,12 @@ class AlertService {
       // 5. Enviar SMS (Solo Android)
       if (Platform.isAndroid) {
         final Telephony telephony = Telephony.instance;
-        bool? permissionsGranted = await telephony.requestPhoneAndSmsPermissions;
-        
-        if (permissionsGranted == true) {
+        // Solo se pide SEND_SMS: Google Play únicamente lo permite para alertas de
+        // emergencia, y rechaza las apps que piden leer o recibir SMS sin ser la app
+        // de mensajes del teléfono. (Antes se pedía todo el grupo de teléfono y SMS.)
+        final bool permissionsGranted = (await ph.Permission.sms.request()).isGranted;
+
+        if (permissionsGranted) {
           await telephony.sendSms(
             to: numeroFormateado,
             message: smsMensaje,

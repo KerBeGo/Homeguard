@@ -31,6 +31,12 @@ El cuidado de adultos mayores o personas dependientes implica una constante preo
 | 🤝 **Vinculación segura**             | Sistema de códigos de invitación para conectar Cuidador ↔ Paciente          |
 | 📜 **Historial de Alertas**           | Registro de todos los eventos de seguridad del paciente                     |
 
+| 📞 **Llamadas y videollamadas**       | Paciente y cuidador se llaman con un toque, de teléfono a teléfono (WebRTC) |
+| ⌚ **Reloj inteligente (Wear OS)**    | Botón SOS y detección de caídas en la muñeca (`homeguard_watch/`)          |
+| 🧠 **Red neuronal v2**                | Reentrenada; ver `ia/entrenamiento/`                                        |
+
+Detalle de todos los cambios y pasos de despliegue: [CAMBIOS.md](CAMBIOS.md).
+
 ---
 
 ## 🏗️ Arquitectura

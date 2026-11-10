@@ -34,10 +34,13 @@ class AlertasCuidador extends StatelessWidget {
               );
               if (confirm == true) {
                 final docs = await FirebaseFirestore.instance.collection('alertas')
-                    .where('cuidadorId', isEqualTo: user.uid).get();
+                    .where('cuidadorIds', arrayContains: user.uid).get();
                 final batch = FirebaseFirestore.instance.batch();
                 for (var doc in docs.docs) {
-                  batch.delete(doc.reference);
+                  // Solo se quita de MI lista: los demás cuidadores conservan la alerta.
+                  batch.update(doc.reference, {
+                    'cuidadorIds': FieldValue.arrayRemove([user.uid]),
+                  });
                 }
                 await batch.commit();
               }
@@ -48,7 +51,7 @@ class AlertasCuidador extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('alertas')
-            .where('cuidadorId', isEqualTo: user.uid)
+            .where('cuidadorIds', arrayContains: user.uid)
             .orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {

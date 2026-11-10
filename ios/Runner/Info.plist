@@ -51,6 +51,10 @@
 		<string>fetch</string>
 		<string>processing</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>HomeGuard usa la cámara para las videollamadas con tu familia o cuidador.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>HomeGuard usa el micrófono para las llamadas y para detectar sonidos de emergencia.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Esta aplicación requiere acceso a la ubicación cuando está en uso para monitorear el movimiento del paciente.</string>
 	<key>NSLocationAlwaysUsageDescription</key>

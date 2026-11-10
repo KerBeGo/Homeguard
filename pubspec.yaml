@@ -59,6 +59,10 @@ dependencies:
   shared_preferences: ^2.2.0
   url_launcher: ^6.3.2
   flutter_linkify: ^6.0.0
+  # Llamadas y videollamadas directas (WebRTC)
+  flutter_webrtc: ">=0.12.0 <2.0.0"
+  # Reloj inteligente: canje del código de vinculación
+  http: ">=1.2.0 <2.0.0"
 
 dev_dependencies:
   flutter_launcher_icons: ^0.14.4
@@ -96,6 +100,7 @@ flutter:
     - assets/HOMEGUARD.png
     - assets/HOMEGUARD_2.png
     - assets/modelo_fusion.tflite
+    - assets/modelo_fusion_v2.tflite
 
   # To add assets to your application, add an assets section, like this:
   # assets:

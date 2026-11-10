@@ -7,6 +7,7 @@ import 'citas_paciente.dart';
 import 'dashboard_paciente.dart';
 import '../../services/connection_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../llamadas/llamada_screen.dart';
 
 class PatientDetailScreen extends StatelessWidget {
   final String patientId;
@@ -25,6 +26,16 @@ class PatientDetailScreen extends StatelessWidget {
       child: Scaffold(
         appBar: AppBar(
           actions: [
+            IconButton(
+              icon: const Icon(Icons.call, color: Colors.white),
+              tooltip: "Llamar",
+              onPressed: () => LlamadaScreen.llamar(context, paraUid: patientId, nombre: patientName),
+            ),
+            IconButton(
+              icon: const Icon(Icons.videocam, color: Colors.white),
+              tooltip: "Videollamada",
+              onPressed: () => LlamadaScreen.llamar(context, paraUid: patientId, nombre: patientName, video: true),
+            ),
             IconButton(
               icon: const Icon(Icons.person_remove, color: Colors.white),
               tooltip: "Desvincular Paciente",

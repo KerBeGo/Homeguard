@@ -1,68 +1,29 @@
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
 const admin = require("firebase-admin");
+const { FieldValue } = require("firebase-admin/firestore");
+const { procesarAlerta } = require("./alertas");
 
 admin.initializeApp();
 
 exports.sendAlertNotification = onDocumentCreated(
   "alertas/{alertId}",
   async (event) => {
-    // En la v2, los datos vienen dentro del objeto "event.data"
     const snapshot = event.data;
-
-    // Si no hay datos, detenemos la ejecución
     if (!snapshot) return null;
 
-    const alertData = snapshot.data();
-    const cuidadorId = alertData.cuidadorId;
-    const mensaje = alertData.mensaje;
-    const pacienteNombre = alertData.pacienteNombre;
-
-    if (!cuidadorId) return null;
-
-    // 1. Obtener el token FCM del cuidador
-    const userDoc = await admin
-      .firestore()
-      .collection("users")
-      .doc(cuidadorId)
-      .get();
-
-    if (!userDoc.exists) {
-      console.log("No se encontró el cuidador");
-      return null;
-    }
-
-    const fcmToken = userDoc.data().fcmToken;
-    if (!fcmToken) {
-      console.log("El cuidador no tiene token FCM");
-      return null;
-    }
-
-    // 2. Construir el mensaje de notificación (Formato API v1 moderno)
-    const payload = {
-      token: fcmToken,
-      notification: {
-        title: `¡Alerta de ${pacienteNombre}!`,
-        body: mensaje,
-      },
-      data: {
-        click_action: "FLUTTER_NOTIFICATION_CLICK",
-        tipo: alertData.tipo || "general",
-        pacienteId: alertData.pacienteId || "",
-      },
-      android: {
-        notification: {
-          sound: "default",
-        },
-      },
-    };
-
-    // 3. Enviar la notificación usando el método moderno ".send()"
     try {
-      const response = await admin.messaging().send(payload);
-      console.log("Notificación enviada con éxito:", response);
-      return response;
+      // Envía la alerta a TODOS los cuidadores vinculados (antes solo llegaba a uno).
+      const resumen = await procesarAlerta({
+        db: admin.firestore(),
+        messaging: admin.messaging(),
+        alertaRef: snapshot.ref,
+        alerta: snapshot.data(),
+        borrarCampo: () => FieldValue.delete(),
+      });
+      console.log("Alerta procesada:", JSON.stringify(resumen));
+      return resumen;
     } catch (error) {
-      console.error("Error enviando notificación:", error);
+      console.error("Error procesando alerta:", error);
       return null;
     }
   },
@@ -191,3 +152,50 @@ exports.syncAppointmentNotification = onDocumentCreated(
     }
   },
 );
+
+// ---------------------------------------------------------------------------
+// Llamadas y videollamadas: hace sonar el teléfono del receptor.
+// ---------------------------------------------------------------------------
+const { procesarLlamada } = require("./llamadas");
+
+exports.notificarLlamada = onDocumentCreated("llamadas/{llamadaId}", async (event) => {
+  const snapshot = event.data;
+  if (!snapshot) return null;
+  try {
+    const r = await procesarLlamada({
+      db: admin.firestore(),
+      messaging: admin.messaging(),
+      llamadaRef: snapshot.ref,
+      llamadaId: event.params.llamadaId,
+      llamada: snapshot.data(),
+    });
+    console.log("Llamada procesada:", JSON.stringify(r));
+    return r;
+  } catch (error) {
+    console.error("Error notificando llamada:", error);
+    return null;
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Reloj inteligente: canjea el código de 6 dígitos por un token de sesión.
+// POST https://<región>-<proyecto>.cloudfunctions.net/canjearCodigoReloj  {"codigo":"123456"}
+// ---------------------------------------------------------------------------
+const { onRequest } = require("firebase-functions/v2/https");
+const { canjearCodigo } = require("./reloj");
+
+exports.canjearCodigoReloj = onRequest({ cors: false, maxInstances: 5 }, async (req, res) => {
+  if (req.method !== "POST") {
+    res.status(405).json({ error: "Usa POST." });
+    return;
+  }
+  try {
+    const codigo = String((req.body && req.body.codigo) || "");
+    const r = await canjearCodigo({ db: admin.firestore(), auth: admin.auth(), codigo });
+    res.json({ token: r.token });
+  } catch (error) {
+    const status = error.status || 500;
+    if (status === 500) console.error("Error canjeando código de reloj:", error);
+    res.status(status).json({ error: status === 500 ? "Error interno." : error.message });
+  }
+});
