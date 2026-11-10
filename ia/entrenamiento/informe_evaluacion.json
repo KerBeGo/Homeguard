@@ -1,0 +1,73 @@
+{
+  "conjunto_prueba": "simulado, semilla distinta del entrenamiento",
+  "umbral": 0.7,
+  "entradas_tflite": [
+    [
+      0,
+      "serving_default_audio_input:0",
+      [
+        1,
+        128,
+        128,
+        1
+      ]
+    ],
+    [
+      1,
+      "serving_default_acc_input:0",
+      [
+        1,
+        250,
+        3
+      ]
+    ]
+  ],
+  "modelo_nuevo": {
+    "sensibilidad_caidas_detectadas": 0.944,
+    "especificidad_adl_sin_alarma": 0.978,
+    "falsas_alarmas": 25,
+    "caidas_perdidas": 27,
+    "tasa_de_alarma_por_escenario": {
+      "acostarse": 0.006,
+      "caida_cama": 0.95,
+      "caida_espalda": 0.912,
+      "caida_frente": 0.963,
+      "caida_lado": 0.938,
+      "caida_silla": 0.988,
+      "caminar": 0.0,
+      "correr": 0.0,
+      "desmayo": 0.912,
+      "escaleras": 0.0,
+      "quieto": 0.0,
+      "saltar": 0.138,
+      "sentarse_fuerte": 0.062,
+      "telefono_cae": 0.0,
+      "telefono_en_mano": 0.037,
+      "tropiezo_sin_caida": 0.0
+    }
+  },
+  "modelo_original": {
+    "sensibilidad_caidas_detectadas": 0.81,
+    "especificidad_adl_sin_alarma": 0.204,
+    "falsas_alarmas": 891,
+    "caidas_perdidas": 91,
+    "tasa_de_alarma_por_escenario": {
+      "acostarse": 0.806,
+      "caida_cama": 0.787,
+      "caida_espalda": 0.863,
+      "caida_frente": 0.8,
+      "caida_lado": 0.85,
+      "caida_silla": 0.775,
+      "caminar": 0.806,
+      "correr": 0.75,
+      "desmayo": 0.787,
+      "escaleras": 0.787,
+      "quieto": 0.7,
+      "saltar": 0.787,
+      "sentarse_fuerte": 0.781,
+      "telefono_cae": 0.863,
+      "telefono_en_mano": 0.825,
+      "tropiezo_sin_caida": 0.775
+    }
+  }
+}

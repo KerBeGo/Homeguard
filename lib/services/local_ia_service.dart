@@ -141,7 +141,14 @@ class LocalAIService {
   // Intérprete y estado de TensorFlow Lite (Edge AI)
   tfl.Interpreter? _interpreter;
   bool _isModelLoaded = false;
-  static const String _modelAssetPath = 'assets/modelo_fusion.tflite';
+  // v2: reentrenada con orientación aleatoria del teléfono y ejemplos de caminar, correr,
+  // sentarse, acostarse, saltar y teléfono que se cae (ver ia/entrenamiento). Misma
+  // entrada y salida que la v1, que queda como respaldo si la v2 no carga.
+  static const List<String> _modelosDisponibles = [
+    'assets/modelo_fusion_v2.tflite',
+    'assets/modelo_fusion.tflite',
+  ];
+  String _modelAssetPath = _modelosDisponibles.first;
 
   // Estados de la IA
   FallState _currentState = FallState.searching;
@@ -215,8 +222,20 @@ class LocalAIService {
   /// Carga e inicializa el modelo Edge AI (.tflite) desde los assets locales
   Future<void> initializeModel() async {
     try {
-      addLog("IA EDGE: Intentando cargar modelo TFLite desde $_modelAssetPath...");
-      _interpreter = await tfl.Interpreter.fromAsset(_modelAssetPath);
+      tfl.Interpreter? cargado;
+      Object? ultimoError;
+      for (final ruta in _modelosDisponibles) {
+        try {
+          addLog("IA EDGE: Intentando cargar modelo TFLite desde $ruta...");
+          cargado = await tfl.Interpreter.fromAsset(ruta);
+          _modelAssetPath = ruta;
+          break;
+        } catch (e) {
+          ultimoError = e;
+        }
+      }
+      if (cargado == null) throw ultimoError ?? Exception('Sin modelo');
+      _interpreter = cargado;
       _isModelLoaded = true;
       addLog("IA EDGE: ¡Modelo neuronal de Fusión Intermedia cargado correctamente!");
       

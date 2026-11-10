@@ -100,6 +100,7 @@ flutter:
     - assets/HOMEGUARD.png
     - assets/HOMEGUARD_2.png
     - assets/modelo_fusion.tflite
+    - assets/modelo_fusion_v2.tflite
 
   # To add assets to your application, add an assets section, like this:
   # assets:
