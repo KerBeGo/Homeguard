@@ -376,7 +376,7 @@ class _HomeCuidadorState extends State<HomeCuidador> {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('alertas')
-          .where('cuidadorId', isEqualTo: user!.uid)
+          .where('cuidadorIds', arrayContains: user!.uid)
           .orderBy('timestamp', descending: true)
           .limit(3)
           .snapshots(),

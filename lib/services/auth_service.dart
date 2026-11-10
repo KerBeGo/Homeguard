@@ -1,7 +1,22 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/usuario_model.dart';
+import 'dart:math';
 import 'tracking_service.dart';
+
+/// Caracteres sin ambigüedad (sin 0/O ni 1/I) para que el código se dicte fácil.
+const _alfabetoCodigo = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+/// Genera un código como "ROS-K7Q2M9": 3 letras del nombre + 6 caracteres aleatorios.
+/// Antes eran 4 caracteres tomados del UID (unas 65.000 combinaciones por nombre);
+/// ahora son más de mil millones, generados con un generador criptográfico.
+String generarCodigoVinculacion(String nombre, {Random? random}) {
+  final rnd = random ?? Random.secure();
+  final letras = nombre.toUpperCase().replaceAll(RegExp(r'[^A-Z]'), '');
+  final prefijo = (letras.length >= 3 ? letras.substring(0, 3) : letras.padRight(3, 'X'));
+  final sufijo = List.generate(6, (_) => _alfabetoCodigo[rnd.nextInt(_alfabetoCodigo.length)]).join();
+  return '$prefijo-$sufijo';
+}
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -23,9 +38,8 @@ class AuthService {
           .createUserWithEmailAndPassword(email: email, password: password);
 
       // 2. Generar el código de vinculación único
-      // (Usamos parte del ID único para asegurar que no se repita)
-      String codigoUnico =
-          "${nombre.substring(0, 3).toUpperCase()}-${userCredential.user!.uid.substring(0, 4).toUpperCase()}";
+      // (aleatorio y difícil de adivinar: ver generarCodigoVinculacion)
+      String codigoUnico = generarCodigoVinculacion(nombre);
 
       // 3. Crear nuestro Modelo de datos
       UsuarioModel nuevoUsuario = UsuarioModel(

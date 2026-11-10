@@ -7,6 +7,8 @@ class AlertModel {
   final String pacienteId;
   final String pacienteNombre;
   final String cuidadorId;
+  /// Todos los cuidadores que reciben la alerta (lo completa la Cloud Function).
+  final List<String> cuidadorIds;
   final DateTime timestamp;
   final bool leida;
 
@@ -17,6 +19,7 @@ class AlertModel {
     required this.pacienteId,
     required this.pacienteNombre,
     required this.cuidadorId,
+    this.cuidadorIds = const [],
     required this.timestamp,
     this.leida = false,
   });
@@ -28,6 +31,7 @@ class AlertModel {
       'pacienteId': pacienteId,
       'pacienteNombre': pacienteNombre,
       'cuidadorId': cuidadorId,
+      'cuidadorIds': cuidadorIds,
       'timestamp': Timestamp.fromDate(timestamp),
       'leida': leida,
     };
@@ -41,6 +45,7 @@ class AlertModel {
       pacienteId: map['pacienteId'] ?? '',
       pacienteNombre: map['pacienteNombre'] ?? '',
       cuidadorId: map['cuidadorId'] ?? '',
+      cuidadorIds: List<String>.from(map['cuidadorIds'] ?? const []),
       timestamp: (map['timestamp'] as Timestamp).toDate(),
       leida: map['leida'] ?? false,
     );

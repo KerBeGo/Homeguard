@@ -99,13 +99,34 @@ class ConnectionService {
         await doc.reference.delete();
       }
 
-      // 2. Limpiar los campos en el documento del paciente
-      await _firestore.collection('users').doc(pacienteId).update({
-        'cuidadorId': FieldValue.delete(),
-        'cuidadorTelefono': FieldValue.delete(),
-      });
+      // 2. Si al paciente le quedan otros cuidadores, uno de ellos pasa a ser
+      //    el contacto principal (para el SMS de emergencia sin internet).
+      //    Antes se borraba siempre, y el paciente se quedaba sin respaldo por SMS.
+      final restantes = await _firestore
+          .collection('connections')
+          .where('pacienteId', isEqualTo: pacienteId)
+          .limit(1)
+          .get();
 
-      // 3. Limpiar localmente
+      if (restantes.docs.isNotEmpty) {
+        final nuevoCuidadorId = restantes.docs.first.data()['cuidadorId'] as String?;
+        String? nuevoTelefono;
+        if (nuevoCuidadorId != null) {
+          final cuidadorDoc = await _firestore.collection('users').doc(nuevoCuidadorId).get();
+          nuevoTelefono = cuidadorDoc.data()?['telefono']?.toString();
+        }
+        await _firestore.collection('users').doc(pacienteId).update({
+          'cuidadorId': nuevoCuidadorId ?? FieldValue.delete(),
+          'cuidadorTelefono': nuevoTelefono ?? FieldValue.delete(),
+        });
+      } else {
+        await _firestore.collection('users').doc(pacienteId).update({
+          'cuidadorId': FieldValue.delete(),
+          'cuidadorTelefono': FieldValue.delete(),
+        });
+      }
+
+      // 3. Limpiar localmente (en este dispositivo, el del cuidador)
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('cuidadorTelefono');
       await prefs.remove('cuidadorId');

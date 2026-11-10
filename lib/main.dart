@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       navigatorKey: globalNavigatorKey,
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'HomeGuard',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
